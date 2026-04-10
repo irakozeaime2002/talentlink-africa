@@ -1,0 +1,141 @@
+/* stylelint-disable */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-gradient: linear-gradient(135deg, #f8fafc 0%, #eef2ff 50%, #faf5ff 100%);
+  --card-bg: rgba(255, 255, 255, 0.85);
+  --card-border: rgba(226, 232, 240, 0.8);
+  --card-shadow: 0 4px 24px rgba(108, 99, 255, 0.06), 0 1px 4px rgba(0,0,0,0.04);
+  --card-shadow-hover: 0 12px 40px rgba(108, 99, 255, 0.12), 0 2px 8px rgba(0,0,0,0.06);
+  --text-primary: #0f172a;
+  --text-secondary: #64748b;
+  --nav-bg: rgba(255, 255, 255, 0.9);
+}
+
+.dark {
+  --card-bg: rgba(22, 20, 36, 0.85);
+  --card-border: rgba(255, 255, 255, 0.07);
+  --card-shadow: 0 4px 24px rgba(0, 0, 0, 0.3), 0 1px 4px rgba(0,0,0,0.2);
+  --card-shadow-hover: 0 12px 40px rgba(108, 99, 255, 0.2), 0 2px 8px rgba(0,0,0,0.3);
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --nav-bg: rgba(15, 15, 26, 0.9);
+}
+
+body {
+  background: var(--bg-gradient);
+  background-attachment: fixed;
+  color: var(--text-primary);
+  min-height: 100vh;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+/* Glass card */
+.glass-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  box-shadow: var(--card-shadow);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 1rem;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.glass-card:hover {
+  box-shadow: var(--card-shadow-hover);
+  transform: translateY(-2px);
+}
+
+/* Glow button */
+.btn-glow {
+  background: var(--accent, #6C63FF);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+  transition: all 0.2s ease;
+}
+
+.btn-glow:hover {
+  opacity: 0.9;
+  box-shadow: 0 6px 28px rgba(0,0,0,0.25);
+  transform: scale(1.02);
+}
+
+/* Stat card number */
+.stat-number {
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--accent, #6C63FF);
+}
+
+/* Accent-aware active nav link */
+.nav-active {
+  background: var(--accent-light, #eef2ff);
+  color: var(--accent, #6C63FF);
+}
+
+/* Accent text */
+.accent-text {
+  color: var(--accent, #6C63FF);
+}
+
+/* Accent bg light */
+.accent-bg-light {
+  background: var(--accent-light, #eef2ff);
+}
+
+/* Accent border */
+.accent-border {
+  border-color: var(--accent, #6C63FF);
+}
+
+/* Accent gradient icon bg */
+.accent-icon-bg {
+  background: var(--accent, #6C63FF);
+}
+
+/* Board hero — respects accent + dark mode */
+.hero-board-gradient {
+  background: linear-gradient(135deg, #0f0c29 0%, var(--accent, #302b63) 50%, #24243e 100%);
+}
+.dark .hero-board-gradient {
+  background: linear-gradient(135deg, #07060f 0%, var(--accent, #1e1b3a) 50%, #0d0c1a 100%);
+}
+.noise-bg::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.4;
+}
+
+/* Floating orbs */
+.orb {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+  z-index: 0;
+  animation: float 8s ease-in-out infinite;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #c7d2fe; border-radius: 3px; }
+.dark ::-webkit-scrollbar-thumb { background: #3730a3; }
+
+/* Dark mode text overrides */
+.dark .text-gray-900 { color: #f1f5f9; }
+.dark .text-gray-700 { color: #cbd5e1; }
+.dark .text-gray-600 { color: #94a3b8; }
+.dark .text-gray-500 { color: #64748b; }
+.dark .text-gray-400 { color: #475569; }
+.dark .bg-white { background-color: rgba(22, 20, 36, 0.9); }
+.dark .bg-gray-50 { background-color: rgba(15, 15, 26, 0.8); }
+.dark .bg-gray-100 { background-color: rgba(30, 27, 50, 0.8); }
+.dark .border-gray-200 { border-color: rgba(255,255,255,0.07); }
+.dark .border-gray-100 { border-color: rgba(255,255,255,0.05); }
