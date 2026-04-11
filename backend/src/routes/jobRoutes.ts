@@ -1,12 +1,12 @@
 import { Router } from "express";
-import { createJob, getJobs, getJob, updateJob, deleteJob, getPublicJobs } from "../controllers/jobController";
+import { createJob, getJobs, getJob, updateJob, deleteJob, getPublicJobs, getPublicJob } from "../controllers/jobController";
 import { authenticate, requireRole } from "../middleware/auth";
 
 const router = Router();
 
 // Public job board
 router.get("/public", getPublicJobs);
-router.get("/public/:id", getJob);
+router.get("/public/:id", getPublicJob);
 
 // Recruiter-only
 router.post("/", authenticate, requireRole("recruiter"), createJob);

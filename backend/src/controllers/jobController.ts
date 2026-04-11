@@ -26,8 +26,27 @@ export const getJobs = async (req: Request, res: Response, next: NextFunction): 
 // Public: all open jobs (for job board)
 export const getPublicJobs = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const jobs = await Job.find({ status: "open" }).sort({ createdAt: -1 });
+    const now = new Date();
+    const jobs = await Job.find({
+      status: "open",
+      $or: [{ deadline: { $exists: false } }, { deadline: null }, { deadline: { $gte: now } }],
+    }).sort({ createdAt: -1 });
     res.json(jobs);
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getPublicJob = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const now = new Date();
+    const job = await Job.findOne({
+      _id: req.params.id,
+      status: "open",
+      $or: [{ deadline: { $exists: false } }, { deadline: null }, { deadline: { $gte: now } }],
+    });
+    if (!job) { res.status(404).json({ error: "Job not found" }); return; }
+    res.json(job);
   } catch (err) {
     next(err);
   }
