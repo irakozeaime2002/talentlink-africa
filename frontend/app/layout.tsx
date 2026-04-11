@@ -12,6 +12,10 @@ import { ThemeProvider } from "../context/ThemeContext";
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌍</text></svg>" />
+        <title>TalentLink Africa</title>
+      </head>
       <body className="noise-bg">
         {/* Ambient orbs */}
         <div className="orb w-96 h-96 bg-indigo-300/20 dark:bg-indigo-600/10 top-[-100px] left-[-100px]" />
