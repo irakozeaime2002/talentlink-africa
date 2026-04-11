@@ -109,6 +109,11 @@ export default function LoginPage() {
                 />
               </div>
             </div>
+            <div className="flex justify-end">
+              <Link href="/auth/forgot-password" className="text-xs hover:underline" style={{ color: "var(--accent)" }}>
+                Forgot password?
+              </Link>
+            </div>
             <button
               type="submit" disabled={loading}
               className="w-full flex items-center justify-center gap-2 btn-glow text-white py-3 rounded-xl font-semibold disabled:opacity-50 transition mt-2"

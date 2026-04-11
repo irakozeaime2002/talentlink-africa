@@ -139,6 +139,12 @@ export const fetchApplicantProfile = (applicant_id: string) =>
 export const fetchApplicantUser = (applicant_id: string) =>
   api.get<User>(`/applications/applicant/${applicant_id}/user`).then((r) => r.data);
 
+export const forgotPassword = (email: string) =>
+  api.post("/auth/forgot-password", { email }).then((r) => r.data);
+
+export const resetPassword = (token: string, password: string) =>
+  api.post("/auth/reset-password", { token, password }).then((r) => r.data);
+
 export const sendChatMessage = (message: string, history: { role: "user" | "model"; parts: { text: string }[] }[]) =>
   api.post<{ reply: string }>("/chat", { message, history }).then((r) => r.data);
 

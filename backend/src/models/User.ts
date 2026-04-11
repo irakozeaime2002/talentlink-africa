@@ -7,6 +7,8 @@ export interface IUser extends Document {
   role: "recruiter" | "applicant" | "admin";
   plan: "free" | "pro" | "enterprise";
   planExpiresAt?: Date;
+  resetToken?: string;
+  resetTokenExpiry?: Date;
   phone?: string;
   date_of_birth?: string;
   gender?: string;
@@ -26,6 +28,8 @@ const UserSchema = new Schema<IUser>(
     role: { type: String, enum: ["recruiter", "applicant", "admin"], required: true },
     plan: { type: String, enum: ["free", "pro", "enterprise"], default: "free" },
     planExpiresAt: Date,
+    resetToken: String,
+    resetTokenExpiry: Date,
     phone: String,
     date_of_birth: String,
     gender: String,
