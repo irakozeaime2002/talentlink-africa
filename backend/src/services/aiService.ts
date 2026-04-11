@@ -53,7 +53,10 @@ For each candidate, read:
 - projects[]: project names, descriptions, technologies used
 - education[]: degree, field, institution, year
 - certifications[]: any professional certifications
-- cv_text (if present): raw CV text — treat as additional evidence for all dimensions
+- cv_text (if present): raw CV text — treat as additional evidence for ALL dimensions. Extract any skills, experience, projects, or education mentioned here that are not in the structured fields above.
+- cover_letter (if present): the applicant's motivation letter — use it to assess communication quality, role alignment, and genuine interest. Strong, specific cover letters are a positive signal.
+- application_answers (if present): answers to the recruiter's custom screening questions — these are CRITICAL. Evaluate how well the candidate answered each question. Specific, thoughtful answers that demonstrate knowledge of the role should positively influence the score. Vague or empty answers are a negative signal.
+- attached_documents (if present): text extracted from ANY documents the applicant uploaded (portfolio, certificates, transcripts, work samples, etc.). Each document is labeled with its filename. Read ALL of them carefully — they may contain evidence of skills, qualifications, projects, or certifications not mentioned elsewhere. A portfolio showing real work is strong evidence. A certificate proves a claimed skill. Treat each document according to what it contains.
 
 ---
 
@@ -68,7 +71,8 @@ Algorithm:
 2. base = (matched_required / total_required) × 100
 3. For each preferred_skill matched, add 5 points (bonus capped at 20).
 4. If cv_text exists, scan it for additional skill mentions not in skills[] and count those too.
-5. Final skills score = MIN(base + bonus, 100)
+5. If cover_letter or application_answers exist, scan them for skill mentions as additional evidence.
+6. Final skills score = MIN(base + bonus, 100)
 
 Examples:
 - 0 of 4 required matched → 0 + bonus → skills = 0–20
@@ -112,7 +116,7 @@ Algorithm:
    - 2 relevant projects → 70
    - 3+ relevant projects → 85
 3. Quality bonus: for each relevant project that uses 2+ required_skills as technologies → +5 (capped at +15)
-4. If cv_text mentions additional projects not in projects[], count those too.
+4. If cv_text or application_answers mention additional projects not in projects[], count those too.
 5. Final projects score = MIN(base + quality_bonus, 100)
 
 ### DIMENSION 4 — education (contributes 10% to final score)
@@ -146,9 +150,9 @@ Derive recommendation strictly from match_score — no exceptions:
 ## STEP 5 — BUILD OUTPUT
 
 For each candidate:
-- strengths[]: 2–5 bullet points. Each MUST name a specific skill, job title, company, or project from the data. No vague statements like "strong background".
+- strengths[]: 2–5 bullet points. Each MUST name a specific skill, job title, company, project, or notable answer from the data. No vague statements like "strong background".
 - gaps[]: list every required_skill not found in the candidate's profile. If no gaps, return ["No significant gaps"].
-- reason: exactly 2–3 sentences. Sentence 1: overall fit summary with score. Sentence 2: strongest evidence. Sentence 3: biggest gap or risk.
+- reason: exactly 2–3 sentences. Sentence 1: overall fit summary with score. Sentence 2: strongest evidence (including cover letter quality or answer quality if notable). Sentence 3: biggest gap or risk.
 
 ---
 

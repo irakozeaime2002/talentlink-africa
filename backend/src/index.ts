@@ -8,6 +8,7 @@ import screeningRoutes from "./routes/screeningRoutes";
 import authRoutes from "./routes/authRoutes";
 import applicationRoutes from "./routes/applicationRoutes";
 import seedRoutes from "./routes/seedRoutes";
+import adminRoutes from "./routes/adminRoutes";
 import chatRoutes from "./routes/chatRoutes";
 import { errorHandler } from "./middleware/errorHandler";
 
@@ -34,6 +35,7 @@ app.use("/api/screening", screeningRoutes);
 app.use("/api/applications", applicationRoutes);
 app.use("/api/seed", seedRoutes);
 app.use("/api/chat", chatRoutes);
+app.use("/api/admin", adminRoutes);
 
 app.use(errorHandler);
 

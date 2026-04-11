@@ -3,7 +3,6 @@ import { Application } from "../models/Application";
 import { Candidate } from "../models/Candidate";
 import { Job } from "../models/Job";
 import { User } from "../models/User";
-import { parsePDF } from "../services/parserService";
 
 export const uploadMyCV = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -70,12 +69,13 @@ export const applyToJob = async (req: Request, res: Response, next: NextFunction
     const documents: { name: string; filename: string; data: string }[] = [];
     let extractedText = "";
     for (const file of files) {
-      const ext = file.originalname.split(".").pop()?.toLowerCase();
       const data = file.buffer.toString("base64");
       documents.push({ name: file.fieldname || file.originalname, filename: file.originalname, data });
-      if (ext === "pdf") {
-        try { extractedText += await parsePDF(file.buffer) + "\n"; } catch {}
-      }
+      try {
+        const { extractDocumentText } = await import("../services/parserService");
+        const text = await extractDocumentText(file.buffer, file.originalname);
+        if (text.trim()) extractedText += text + "\n";
+      } catch {}
     }
     if (documents.length > 0) {
       await Application.findByIdAndUpdate(app._id, { documents });
@@ -198,11 +198,12 @@ export const updateMyApplication = async (req: Request, res: Response, next: Nex
       const newDocs: { name: string; filename: string; data: string }[] = [];
       let extractedText = "";
       for (const file of files) {
-        const ext = file.originalname.split(".").pop()?.toLowerCase();
         newDocs.push({ name: file.fieldname || file.originalname, filename: file.originalname, data: file.buffer.toString("base64") });
-        if (ext === "pdf") {
-          try { extractedText += await parsePDF(file.buffer) + "\n"; } catch {}
-        }
+        try {
+          const { extractDocumentText } = await import("../services/parserService");
+          const text = await extractDocumentText(file.buffer, file.originalname);
+          if (text.trim()) extractedText += text + "\n";
+        } catch {}
       }
       // Merge: replace docs with same name, keep others
       const existing = (app as any).documents || [];

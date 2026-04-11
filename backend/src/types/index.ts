@@ -17,6 +17,9 @@ export interface CandidateInput {
   projects: ProjectEntry[];
   certifications: string[];
   cv_text?: string;
+  cover_letter?: string;
+  application_answers?: { question: string; answer: string }[];
+  attached_documents?: string;
 }
 
 export interface EducationEntry {
