@@ -152,6 +152,9 @@ export default function Navbar() {
           <button onClick={toggleDark} className="p-2 text-gray-500 dark:text-gray-400">
             {dark ? <Sun size={16} /> : <Moon size={16} />}
           </button>
+          <button onClick={() => setPaletteOpen(!paletteOpen)} className="p-2 text-gray-500 dark:text-gray-400">
+            <Palette size={16} />
+          </button>
           <button onClick={() => setMobileOpen(!mobileOpen)} className="p-2 text-gray-600 dark:text-gray-400">
             {mobileOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
@@ -167,6 +170,20 @@ export default function Navbar() {
               {label}
             </Link>
           ))}
+          {/* Accent colors in mobile menu */}
+          <div className="pt-2 border-t dark:border-white/10">
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 px-1">Theme Color</p>
+            <div className="flex gap-2 flex-wrap px-1">
+              {(Object.keys(ACCENT_COLORS) as (keyof typeof ACCENT_COLORS)[]).map((c) => (
+                <button key={c} onClick={() => setAccent(c)}
+                  className="w-7 h-7 rounded-full border-2 border-white shadow transition-transform hover:scale-110"
+                  style={{ background: c === "default" ? "linear-gradient(135deg, #94a3b8, #64748b)" : ACCENT_COLORS[c].primary,
+                    boxShadow: accent === c ? `0 0 0 3px ${ACCENT_COLORS[c].primary}` : "none" }}
+                  title={ACCENT_COLORS[c].label}
+                />
+              ))}
+            </div>
+          </div>
           {!user && (
             <div className="flex gap-2 pt-2">
               <Link href="/auth/login" onClick={() => setMobileOpen(false)} className="flex-1 text-center py-2 text-sm border rounded-lg dark:border-white/10">Sign In</Link>

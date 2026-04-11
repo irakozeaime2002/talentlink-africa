@@ -330,3 +330,8 @@ cd backend && npm run build
 # Set all environment variables in the hosting dashboard
 # Start command: node dist/index.js
 ```
+
+
+git add .
+git commit -m Initial commit TalentLink Africa
+git push
