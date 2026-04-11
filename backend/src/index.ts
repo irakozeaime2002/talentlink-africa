@@ -13,7 +13,18 @@ import { errorHandler } from "./middleware/errorHandler";
 
 const app = express();
 
-app.use(cors({ origin: process.env.CLIENT_URL }));
+app.use(cors({
+  origin: (origin, callback) => {
+    const allowed = process.env.CLIENT_URL || "";
+    // Allow requests with no origin (mobile, Postman) or matching vercel/localhost
+    if (!origin || origin === allowed || origin.includes("vercel.app") || origin.includes("localhost")) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true,
+}));
 app.use(express.json());
 
 app.use("/api/auth", authRoutes);
