@@ -336,7 +336,7 @@ export default function JobDetailPage() {
             </div>
           ) : (
             results.map((result, i) => (
-              <div key={result._id} className="glass-card overflow-hidden">
+              <div key={result._id} className="glass-card overflow-visible">
                 {/* Result header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-white/5">
                   <div className="flex items-center gap-3">
