@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { updateProfile } from "../../store/slices/authSlice";
 import { loadMyApplications } from "../../store/slices/applicationsSlice";
@@ -19,7 +19,7 @@ const LABEL = "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1";
 
 type Tab = "personal" | "professional" | "applications";
 
-export default function ProfilePage() {
+function ProfileContent() {
   const dispatch = useAppDispatch();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -389,5 +389,10 @@ export default function ProfilePage() {
         </div>
       )}
     </div>
+export default function ProfilePage() {
+  return (
+    <Suspense fallback={null}>
+      <ProfileContent />
+    </Suspense>
   );
 }
