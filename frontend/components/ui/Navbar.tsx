@@ -32,6 +32,7 @@ export default function Navbar() {
     { href: "/home", label: "Home" },
     { href: "/board", label: "Browse Jobs" },
     { href: "/about", label: "About" },
+    { href: "/pricing", label: "Pricing" },
     { href: "/contact", label: "Contact" },
     { href: "/", label: "Dashboard" },
     { href: "/jobs", label: "My Jobs" },
@@ -42,12 +43,22 @@ export default function Navbar() {
     { href: "/home", label: "Home" },
     { href: "/board", label: "Browse Jobs" },
     { href: "/about", label: "About" },
+    { href: "/pricing", label: "Pricing" },
     { href: "/contact", label: "Contact" },
     { href: "/my-applications", label: "My Applications" },
   ];
 
-  const links = user?.role === "recruiter" ? recruiterLinks : user?.role === "applicant" ? applicantLinks : publicLinks;
-  const dashboardHref = user?.role === "recruiter" ? "/" : "/board";
+  const adminLinks = [
+    { href: "/admin", label: "Overview" },
+    { href: "/admin/users", label: "Users" },
+    { href: "/admin/jobs", label: "Jobs" },
+    { href: "/admin/applications", label: "Applications" },
+    { href: "/admin/subscriptions", label: "Subscriptions" },
+    { href: "/admin/plans", label: "Plan Controls" },
+  ];
+
+  const links = user?.role === "admin" ? adminLinks : user?.role === "recruiter" ? recruiterLinks : user?.role === "applicant" ? applicantLinks : publicLinks;
+  const dashboardHref = user?.role === "admin" ? "/admin" : user?.role === "recruiter" ? "/" : "/board";
 
   return (
     <nav className="sticky top-0 z-50 border-b transition-all duration-300"
@@ -120,7 +131,7 @@ export default function Navbar() {
           {/* Logged in — avatar only */}
           {user && (
             <div className="flex items-center gap-2 pl-2 border-l border-gray-200 dark:border-white/10 ml-1">
-              <Link href={dashboardHref} className="flex items-center gap-2 group">
+              <Link href="/profile" className="flex items-center gap-2 group">
                 <div className="w-8 h-8 btn-glow rounded-full flex items-center justify-center text-xs font-bold text-white">
                   {user.name.charAt(0).toUpperCase()}
                 </div>
@@ -164,7 +175,7 @@ export default function Navbar() {
           )}
           {user && (
             <div className="flex items-center justify-between pt-2 border-t dark:border-white/10">
-              <Link href={dashboardHref} onClick={() => setMobileOpen(false)} className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+              <Link href="/profile" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                 <div className="w-7 h-7 btn-glow rounded-full flex items-center justify-center text-xs text-white font-bold">
                   {user.name.charAt(0).toUpperCase()}
                 </div>

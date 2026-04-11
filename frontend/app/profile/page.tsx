@@ -1,14 +1,14 @@
 "use client";
 import { useState, useEffect, Suspense } from "react";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
-import { updateProfile } from "../../store/slices/authSlice";
+import { updateProfile, upgradePlan } from "../../store/slices/authSlice";
 import { loadMyApplications } from "../../store/slices/applicationsSlice";
 import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import Link from "next/link";
 import { Job, User } from "../../types";
-import { fetchMyProfile, updateMyProfile, uploadMyCV } from "../../lib/api";
-import { Plus, Minus, Save, Paperclip, Upload, User as UserIcon, Briefcase, GraduationCap, FolderGit2, Phone, ArrowLeft } from "lucide-react";
+import { fetchMyProfile, updateMyProfile, uploadMyCV, initiatePayment, verifyPayment } from "../../lib/api";
+import { Plus, Minus, Save, Paperclip, Upload, User as UserIcon, Briefcase, GraduationCap, FolderGit2, Phone, ArrowLeft, Crown, X, Loader2 } from "lucide-react";
 
 type ExpEntry = { title: string; company: string; duration: string; description: string };
 type EduEntry = { degree: string; field: string; institution: string; year: string };
@@ -47,6 +47,9 @@ function ProfileContent() {
   const [projects, setProjects] = useState<ProjEntry[]>([{ name: "", description: "", technologies: "" }]);
 
   const [tab, setTab] = useState<Tab>("personal");
+  const [payModal, setPayModal] = useState<{ plan: "pro" | "enterprise"; billing: "monthly" | "yearly" } | null>(null);
+  const [phone, setPhone] = useState("");
+  const [payStatus, setPayStatus] = useState<"idle" | "waiting" | "polling" | "done" | "failed">("idle");
 
   useEffect(() => {
     if (!user) { router.push("/auth/login"); return; }
@@ -121,6 +124,42 @@ function ProfileContent() {
     finally { setProfileSaving(false); }
   };
 
+  const handleInitiatePayment = async () => {
+    if (!payModal || !phone) return;
+    setPayStatus("waiting");
+    try {
+      const { ref } = await initiatePayment(payModal.plan, payModal.billing, phone);
+      setPayStatus("polling");
+      toast.success("Check your phone for the MoMo prompt!");
+      let attempts = 0;
+      const interval = setInterval(async () => {
+        attempts++;
+        try {
+          const result = await verifyPayment(ref);
+          if (result.status === "successful" && result.token && result.user) {
+            clearInterval(interval);
+            setPayStatus("done");
+            import("js-cookie").then(({ default: Cookies }) => Cookies.set("token", result.token!, { expires: 7 }));
+            dispatch(upgradePlan({ plan: payModal.plan, billing: payModal.billing }));
+            toast.success(`🎉 Payment successful! Upgraded to ${payModal.plan} plan.`);
+            setTimeout(() => { setPayModal(null); setPayStatus("idle"); setPhone(""); }, 2000);
+          } else if (result.status === "failed") {
+            clearInterval(interval);
+            setPayStatus("failed");
+            toast.error("Payment failed. Please try again.");
+          } else if (attempts >= 24) {
+            clearInterval(interval);
+            setPayStatus("failed");
+            toast.error("Payment timed out. Please try again.");
+          }
+        } catch { /* keep polling */ }
+      }, 5000);
+    } catch (err: any) {
+      setPayStatus("idle");
+      toast.error(err.message || "Failed to initiate payment");
+    }
+  };
+
   if (!user) return null;
 
   const tabs: { key: Tab; label: string; icon: React.ReactNode }[] = user.role === "applicant"
@@ -153,7 +192,14 @@ function ProfileContent() {
             <p className="text-xl font-bold">{user.name}</p>
             <p className="text-white/70 text-sm">{user.email}</p>
             {user.phone && <p className="text-white/70 text-sm flex items-center gap-1 mt-0.5"><Phone size={12} />{user.phone}</p>}
-            <span className="text-xs bg-white/20 px-2.5 py-0.5 rounded-full capitalize mt-1 inline-block font-medium">{user.role}</span>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-xs bg-white/20 px-2.5 py-0.5 rounded-full capitalize font-medium">{user.role}</span>
+              {user.role === "recruiter" && (
+                <span className="text-xs bg-white/20 px-2.5 py-0.5 rounded-full capitalize font-medium flex items-center gap-1">
+                  <Crown size={10} /> {user.plan || "free"}
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -372,6 +418,82 @@ function ProfileContent() {
         </div>
       )}
 
+      {/* Plan Management — applicants */}
+      {user.role === "applicant" && (
+        <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-6 shadow-sm space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="font-bold text-gray-900 dark:text-white flex items-center gap-2"><Crown size={16} style={{ color: "var(--accent)" }} /> My Plan</h2>
+              <p className="text-sm text-gray-500 mt-0.5 capitalize">
+                You are on the <strong>{user.plan || "free"}</strong> plan
+                {user.planExpiresAt && ` · expires ${new Date(user.planExpiresAt).toLocaleDateString()}`}
+              </p>
+            </div>
+            <Link href="/pricing" className="text-sm font-medium hover:underline" style={{ color: "var(--accent)" }}>View plans →</Link>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {(["free", "pro"] as const).map((p) => (
+              <div key={p} className={`border rounded-xl p-4 text-center ${
+                (user.plan || "free") === p ? "ring-2 bg-gray-50 dark:bg-white/10" : "opacity-70"
+              }`} style={(user.plan || "free") === p ? { "--tw-ring-color": "var(--accent)" } as any : {}}>
+                <p className="font-bold capitalize text-gray-800 dark:text-gray-200">{p}</p>
+                <p className="text-xs text-gray-400 mb-3">{p === "free" ? "RWF 0" : "RWF 5,000/mo"}</p>
+                {(user.plan || "free") !== p ? (
+                  <button
+                    onClick={() => setPayModal({ plan: "pro", billing: "monthly" })}
+                    className="w-full btn-glow text-white text-xs py-1.5 rounded-lg font-semibold"
+                  >
+                    Upgrade
+                  </button>
+                ) : (
+                  <span className="text-xs font-semibold" style={{ color: "var(--accent)" }}>✓ Active</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Plan Management (recruiters only) */}
+      {user.role === "recruiter" && (
+        <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-6 shadow-sm space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="font-bold text-gray-900 dark:text-white flex items-center gap-2"><Crown size={16} style={{ color: "var(--accent)" }} /> Current Plan</h2>
+              <p className="text-sm text-gray-500 mt-0.5 capitalize">
+                You are on the <strong>{user.plan || "free"}</strong> plan
+                {user.planExpiresAt && ` · expires ${new Date(user.planExpiresAt).toLocaleDateString()}`}
+              </p>
+            </div>
+            <Link href="/pricing" className="text-sm font-medium hover:underline" style={{ color: "var(--accent)" }}>View plans →</Link>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {(["free", "pro", "enterprise"] as const).map((p) => (
+              <div key={p} className={`border rounded-xl p-4 text-center ${
+                (user.plan || "free") === p
+                  ? "ring-2 bg-gray-50 dark:bg-white/10"
+                  : "opacity-70"
+              }`} style={(user.plan || "free") === p ? { "--tw-ring-color": "var(--accent)" } as any : {}}>
+                <p className="font-bold capitalize text-gray-800 dark:text-gray-200">{p}</p>
+                <p className="text-xs text-gray-400 mb-3">
+                  {p === "free" ? "RWF 0" : p === "pro" ? "RWF 10,000/mo" : "RWF 30,000/mo"}
+                </p>
+                {(user.plan || "free") !== p ? (
+                  <button
+                    onClick={() => p !== "free" && setPayModal({ plan: p as "pro" | "enterprise", billing: "monthly" })}
+                    className="w-full btn-glow text-white text-xs py-1.5 rounded-lg font-semibold"
+                  >
+                    {p === "free" ? "Downgrade" : "Upgrade"}
+                  </button>
+                ) : (
+                  <span className="text-xs font-semibold" style={{ color: "var(--accent)" }}>✓ Active</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Recruiter quick links */}
       {user.role === "recruiter" && (
         <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
@@ -385,6 +507,76 @@ function ProfileContent() {
             ].map(({ href, label }) => (
               <Link key={href} href={href} className="glass-card px-4 py-3 text-sm font-medium text-center hover:opacity-80 transition dark:text-gray-300">{label}</Link>
             ))}
+          </div>
+        </div>
+      )}
+      {/* Payment Modal */}
+      {payModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-5">
+            <div className="flex items-center justify-between">
+              <h2 className="font-bold text-lg text-gray-900 dark:text-white flex items-center gap-2">
+                <Crown size={18} style={{ color: "var(--accent)" }} />
+                Upgrade to {payModal.plan.charAt(0).toUpperCase() + payModal.plan.slice(1)}
+              </h2>
+              <button onClick={() => { setPayModal(null); setPayStatus("idle"); setPhone(""); }} className="text-gray-400 hover:text-gray-600">
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Billing toggle */}
+            <div className="flex gap-2">
+              {(["monthly", "yearly"] as const).map((b) => (
+                <button
+                  key={b}
+                  onClick={() => setPayModal({ ...payModal, billing: b })}
+                  className={`flex-1 py-2 rounded-xl text-sm font-semibold border transition ${
+                    payModal.billing === b ? "btn-glow text-white border-transparent" : "border-gray-200 dark:border-white/10 text-gray-500"
+                  }`}
+                >
+                  {b === "monthly" ? `Monthly — RWF ${payModal.plan === "pro" && user.role === "applicant" ? "5,000" : payModal.plan === "pro" ? "10,000" : "30,000"}` : `Yearly — RWF ${payModal.plan === "pro" && user.role === "applicant" ? "40,000" : payModal.plan === "pro" ? "80,000" : "240,000"}`}
+                </button>
+              ))}
+            </div>
+
+            {payStatus === "done" ? (
+              <div className="text-center py-6">
+                <p className="text-4xl mb-2">🎉</p>
+                <p className="font-bold text-green-600">Payment Successful!</p>
+                <p className="text-sm text-gray-400">Your plan has been upgraded.</p>
+              </div>
+            ) : payStatus === "polling" ? (
+              <div className="text-center py-6 space-y-3">
+                <Loader2 size={32} className="animate-spin mx-auto" style={{ color: "var(--accent)" }} />
+                <p className="font-semibold text-gray-700 dark:text-gray-300">Waiting for payment confirmation...</p>
+                <p className="text-sm text-gray-400">Approve the MoMo prompt on your phone</p>
+              </div>
+            ) : (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    MTN / Airtel MoMo Number
+                  </label>
+                  <input
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="e.g. 0781234567"
+                    className="w-full border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)] bg-white dark:bg-white/5 dark:text-gray-200"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">You will receive a payment prompt on this number</p>
+                </div>
+                <button
+                  disabled={!phone || payStatus === "waiting"}
+                  onClick={handleInitiatePayment}
+                  className="w-full btn-glow text-white py-3 rounded-xl font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {payStatus === "waiting" ? <><Loader2 size={16} className="animate-spin" /> Sending prompt...</> : `Pay RWF ${payModal.billing === "monthly" ? (payModal.plan === "pro" && user.role === "applicant" ? "5,000" : payModal.plan === "pro" ? "10,000" : "30,000") : (payModal.plan === "pro" && user.role === "applicant" ? "40,000" : payModal.plan === "pro" ? "80,000" : "240,000")}`}
+                </button>
+                {payStatus === "failed" && (
+                  <p className="text-center text-sm text-red-500">Payment failed or timed out. Try again.</p>
+                )}
+              </>
+            )}
           </div>
         </div>
       )}

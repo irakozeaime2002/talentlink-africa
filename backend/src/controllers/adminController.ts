@@ -4,6 +4,8 @@ import { Job } from "../models/Job";
 import { Candidate } from "../models/Candidate";
 import { Application } from "../models/Application";
 import { ScreeningResult } from "../models/ScreeningResult";
+import { PlanConfig } from "../models/PlanConfig";
+import { ApplicantPlanConfig } from "../models/ApplicantPlanConfig";
 import bcrypt from "bcryptjs";
 
 // ── Stats ─────────────────────────────────────────────────────────────────────
@@ -174,4 +176,103 @@ export const createAdmin = async (req: Request, res: Response, next: NextFunctio
     const user = await User.create({ name, email, password: hashed, role: "admin" });
     res.status(201).json({ _id: user._id, name: user.name, email: user.email, role: user.role });
   } catch (err) { next(err); }
+};
+
+// ── Plan Config ───────────────────────────────────────────────────────────────
+// ── Subscriptions ────────────────────────────────────────────────────────────
+export const getSubscriptions = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { plan, search, page = 1, limit = 20 } = req.query;
+    const filter: Record<string, any> = { role: "recruiter" };
+    if (plan && plan !== "all") filter.plan = plan;
+    if (search) filter.$or = [
+      { name: { $regex: search, $options: "i" } },
+      { email: { $regex: search, $options: "i" } },
+    ];
+    const users = await User.find(filter)
+      .select("-password")
+      .sort({ createdAt: -1 })
+      .skip((+page - 1) * +limit)
+      .limit(+limit);
+    const total = await User.countDocuments(filter);
+    res.json({ users, total, page: +page, pages: Math.ceil(total / +limit) });
+  } catch (err) { next(err); }
+};
+
+export const updateUserPlan = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { plan, planExpiresAt } = req.body;
+    if (![ "free", "pro", "enterprise"].includes(plan)) {
+      res.status(400).json({ error: "Invalid plan" }); return;
+    }
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { plan, planExpiresAt: planExpiresAt || null },
+      { new: true }
+    ).select("-password");
+    if (!user) { res.status(404).json({ error: "User not found" }); return; }
+    res.json(user);
+  } catch (err) { next(err); }
+};
+
+export const getApplicantPlanConfigs = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const configs = await ApplicantPlanConfig.find().sort({ plan: 1 });
+    res.json(configs);
+  } catch (err) { next(err); }
+};
+
+export const updateApplicantPlanConfig = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { plan } = req.params;
+    if (!["free", "pro"].includes(plan)) { res.status(400).json({ error: "Invalid plan" }); return; }
+    const { maxApplications, maxCVUploads, profileHighlight } = req.body;
+    const config = await ApplicantPlanConfig.findOneAndUpdate(
+      { plan },
+      { maxApplications, maxCVUploads, profileHighlight },
+      { new: true, upsert: true }
+    );
+    res.json(config);
+  } catch (err) { next(err); }
+};
+
+export const getPlanConfigs = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const configs = await PlanConfig.find().sort({ plan: 1 });
+    res.json(configs);
+  } catch (err) { next(err); }
+};
+
+export const updatePlanConfig = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { plan } = req.params;
+    if (![ "free", "pro", "enterprise"].includes(plan)) {
+      res.status(400).json({ error: "Invalid plan" }); return;
+    }
+    const { maxJobs, maxScreeningsPerMonth, csvUpload, resumeUpload } = req.body;
+    const config = await PlanConfig.findOneAndUpdate(
+      { plan },
+      { maxJobs, maxScreeningsPerMonth, csvUpload, resumeUpload },
+      { new: true, upsert: true }
+    );
+    res.json(config);
+  } catch (err) { next(err); }
+};
+
+export const seedPlanConfigs = async (): Promise<void> => {
+  const defaults = [
+    { plan: "free",       maxJobs: 3,  maxScreeningsPerMonth: 5,  csvUpload: false, resumeUpload: false },
+    { plan: "pro",        maxJobs: -1, maxScreeningsPerMonth: -1, csvUpload: true,  resumeUpload: true  },
+    { plan: "enterprise", maxJobs: -1, maxScreeningsPerMonth: -1, csvUpload: true,  resumeUpload: true  },
+  ];
+  for (const d of defaults) {
+    await PlanConfig.findOneAndUpdate({ plan: d.plan }, d, { upsert: true });
+  }
+  const applicantDefaults = [
+    { plan: "free", maxApplications: 5,  maxCVUploads: 1,  profileHighlight: false },
+    { plan: "pro",  maxApplications: -1, maxCVUploads: -1, profileHighlight: true  },
+  ];
+  for (const d of applicantDefaults) {
+    await ApplicantPlanConfig.findOneAndUpdate({ plan: d.plan }, d, { upsert: true });
+  }
 };

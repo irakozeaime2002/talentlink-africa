@@ -24,7 +24,7 @@ api.interceptors.response.use(
     const messages: Record<number, string> = {
       400: serverMsg || "Invalid request. Please check your input.",
       401: "You are not logged in. Please sign in to continue.",
-      403: "You do not have permission to perform this action.",
+      403: serverMsg || "You do not have permission to perform this action.",
       404: serverMsg || "The requested resource was not found.",
       409: serverMsg || "A conflict occurred. This record may already exist.",
       429: "Too many requests. Please wait a moment and try again.",
@@ -144,3 +144,38 @@ export const sendChatMessage = (message: string, history: { role: "user" | "mode
 
 export const deleteMyApplication = (id: string) =>
   api.delete(`/applications/${id}`).then((r) => r.data);
+
+// Payment
+export const initiatePayment = (plan: string, billing: "monthly" | "yearly", phone: string) =>
+  api.post<{ ref: string; amount: number; message: string }>("/payment/initiate", { plan, billing, phone }).then((r) => r.data);
+export const verifyPayment = (ref: string) =>
+  api.get<{ status: string; token?: string; user?: User }>(`/payment/verify/${ref}`).then((r) => r.data);
+export const fetchPaymentHistory = () =>
+  api.get("/payment/history").then((r) => r.data);
+
+// Plan
+export const upgradePlan = (plan: string, billing: "monthly" | "yearly") =>
+  api.post<{ token: string; user: User }>("/plan/upgrade", { plan, billing }).then((r) => r.data);
+export const fetchPlan = () =>
+  api.get<{ plan: string; planExpiresAt?: string }>("/plan").then((r) => r.data);
+
+// Admin
+export const adminGetStats = () => api.get("/admin/stats").then((r) => r.data);
+export const adminGetUsers = (params?: Record<string, any>) => api.get("/admin/users", { params }).then((r) => r.data);
+export const adminUpdateUser = (id: string, data: any) => api.put(`/admin/users/${id}`, data).then((r) => r.data);
+export const adminDeleteUser = (id: string) => api.delete(`/admin/users/${id}`).then((r) => r.data);
+export const adminResetPassword = (id: string, password: string) => api.post(`/admin/users/${id}/reset-password`, { password }).then((r) => r.data);
+export const adminGetJobs = (params?: Record<string, any>) => api.get("/admin/jobs", { params }).then((r) => r.data);
+export const adminDeleteJob = (id: string) => api.delete(`/admin/jobs/${id}`).then((r) => r.data);
+export const adminUpdateJobStatus = (id: string, status: string) => api.patch(`/admin/jobs/${id}/status`, { status }).then((r) => r.data);
+export const adminGetApplications = (params?: Record<string, any>) => api.get("/admin/applications", { params }).then((r) => r.data);
+export const adminGetScreenings = () => api.get("/admin/screenings").then((r) => r.data);
+export const adminCreateAdmin = (data: { name: string; email: string; password: string }) => api.post("/admin/create-admin", data).then((r) => r.data);
+export const adminGetPlanConfigs = () => api.get("/admin/plan-configs").then((r) => r.data);
+export const adminUpdatePlanConfig = (plan: string, data: any) => api.put(`/admin/plan-configs/${plan}`, data).then((r) => r.data);
+export const fetchPublicPlanConfigs = () => api.get("/public/plan-configs").then((r) => r.data);
+export const fetchPublicApplicantPlanConfigs = () => api.get("/public/applicant-plan-configs").then((r) => r.data);
+export const adminGetApplicantPlanConfigs = () => api.get("/admin/applicant-plan-configs").then((r) => r.data);
+export const adminUpdateApplicantPlanConfig = (plan: string, data: any) => api.put(`/admin/applicant-plan-configs/${plan}`, data).then((r) => r.data);
+export const adminGetSubscriptions = (params?: Record<string, any>) => api.get("/admin/subscriptions", { params }).then((r) => r.data);
+export const adminUpdateUserPlan = (id: string, plan: string, planExpiresAt?: string) => api.patch(`/admin/subscriptions/${id}/plan`, { plan, planExpiresAt }).then((r) => r.data);

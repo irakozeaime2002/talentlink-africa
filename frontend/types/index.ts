@@ -68,7 +68,9 @@ export interface User {
   _id: string;
   name: string;
   email: string;
-  role: "recruiter" | "applicant";
+  role: "recruiter" | "applicant" | "admin";
+  plan?: "free" | "pro" | "enterprise";
+  planExpiresAt?: string;
   phone?: string;
   date_of_birth?: string;
   gender?: string;

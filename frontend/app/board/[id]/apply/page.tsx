@@ -151,7 +151,7 @@ export default function ApplyPage() {
       {/* Job summary banner */}
       <div
         className="rounded-2xl px-6 py-5 text-white relative overflow-hidden"
-        style={{ background: "linear-gradient(135deg, #6C63FF 0%, #4A90E2 100%)" }}
+        style={{ background: "linear-gradient(135deg, #0f0c29 0%, var(--accent) 60%, #0d0d1a 100%)" }}
       >
         <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full translate-x-1/2 -translate-y-1/2 blur-2xl" />
         <h1 className="text-xl font-bold mb-1 relative z-10">Applying for: {job.title}</h1>

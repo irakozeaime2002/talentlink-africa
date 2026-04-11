@@ -9,6 +9,7 @@ import {
 } from "../controllers/candidateController";
 import { upload } from "../middleware/upload";
 import { authenticate, requireRole } from "../middleware/auth";
+import { requireCSVUpload, requireResumeUpload } from "../middleware/planLimits";
 
 const router = Router();
 
@@ -18,7 +19,7 @@ router.post("/", createCandidate);
 router.get("/", getCandidates);
 router.get("/:id", getCandidate);
 router.delete("/:id", deleteCandidate);
-router.post("/upload/csv", upload.single("file"), uploadCSV);
-router.post("/upload/resumes", upload.array("files", 50), uploadResumes);
+router.post("/upload/csv", requireCSVUpload, upload.single("file"), uploadCSV);
+router.post("/upload/resumes", requireResumeUpload, upload.array("files", 50), uploadResumes);
 
 export default router;

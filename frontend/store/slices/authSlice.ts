@@ -40,6 +40,15 @@ export const updateProfile = createAsyncThunk(
   "auth/updateMe",
   (data: Partial<User>) => api.updateMe(data)
 );
+export const upgradePlan = createAsyncThunk(
+  "auth/upgradePlan",
+  ({ plan, billing }: { plan: string; billing: "monthly" | "yearly" }) => {
+    return api.upgradePlan(plan, billing).then((res) => {
+      Cookies.set("token", res.token, { expires: 7 });
+      return res;
+    });
+  }
+);
 
 const authSlice = createSlice({
   name: "auth",
@@ -63,7 +72,8 @@ const authSlice = createSlice({
       .addCase(loginUser.fulfilled, (s, a) => { s.loading = false; s.user = a.payload.user; s.token = a.payload.token; })
       .addCase(loginUser.rejected, (s, a) => { s.loading = false; s.error = a.error.message || "Failed"; })
       .addCase(loadMe.fulfilled, (s, a) => { s.user = a.payload; })
-      .addCase(updateProfile.fulfilled, (s, a) => { s.user = a.payload; });
+      .addCase(updateProfile.fulfilled, (s, a) => { s.user = a.payload; })
+      .addCase(upgradePlan.fulfilled, (s, a) => { s.user = a.payload.user; s.token = a.payload.token; });
   },
 });
 

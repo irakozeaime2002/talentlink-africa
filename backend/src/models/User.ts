@@ -5,6 +5,8 @@ export interface IUser extends Document {
   email: string;
   password: string;
   role: "recruiter" | "applicant" | "admin";
+  plan: "free" | "pro" | "enterprise";
+  planExpiresAt?: Date;
   phone?: string;
   date_of_birth?: string;
   gender?: string;
@@ -22,6 +24,8 @@ const UserSchema = new Schema<IUser>(
     email: { type: String, required: true, unique: true, lowercase: true },
     password: { type: String, required: true },
     role: { type: String, enum: ["recruiter", "applicant", "admin"], required: true },
+    plan: { type: String, enum: ["free", "pro", "enterprise"], default: "free" },
+    planExpiresAt: Date,
     phone: String,
     date_of_birth: String,
     gender: String,

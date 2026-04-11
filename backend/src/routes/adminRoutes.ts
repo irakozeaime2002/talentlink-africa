@@ -4,6 +4,9 @@ import {
   getStats, getUsers, getUser, updateUser, deleteUser, resetUserPassword,
   getJobs, deleteJob, updateJobStatus,
   getApplications, getScreenings, createAdmin,
+  getPlanConfigs, updatePlanConfig,
+  getApplicantPlanConfigs, updateApplicantPlanConfig,
+  getSubscriptions, updateUserPlan,
 } from "../controllers/adminController";
 
 const router = Router();
@@ -25,5 +28,13 @@ router.get("/applications", ...admin, getApplications);
 router.get("/screenings", ...admin, getScreenings);
 
 router.post("/create-admin", ...admin, createAdmin);
+
+router.get("/plan-configs", ...admin, getPlanConfigs);
+router.put("/plan-configs/:plan", ...admin, updatePlanConfig);
+router.get("/applicant-plan-configs", ...admin, getApplicantPlanConfigs);
+router.put("/applicant-plan-configs/:plan", ...admin, updateApplicantPlanConfig);
+
+router.get("/subscriptions", ...admin, getSubscriptions);
+router.patch("/subscriptions/:id/plan", ...admin, updateUserPlan);
 
 export default router;

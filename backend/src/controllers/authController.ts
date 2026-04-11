@@ -17,8 +17,8 @@ export const register = async (req: Request, res: Response, next: NextFunction):
 
     const hashed = await bcrypt.hash(password, 10);
     const user = await User.create({ name, email, password: hashed, role });
-    const token = jwt.sign({ id: user._id, role: user.role, email: user.email }, JWT_SECRET, { expiresIn: "7d" });
-    res.status(201).json({ token, user: { _id: user._id, name: user.name, email: user.email, role: user.role } });
+    const token = jwt.sign({ id: user._id, role: user.role, email: user.email, plan: user.plan }, JWT_SECRET, { expiresIn: "7d" });
+    res.status(201).json({ token, user: { _id: user._id, name: user.name, email: user.email, role: user.role, plan: user.plan } });
   } catch (err) {
     next(err);
   }
@@ -27,14 +27,23 @@ export const register = async (req: Request, res: Response, next: NextFunction):
 export const login = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { email, password } = req.body;
-    const user = await User.findOne({ email });
+    let user = await User.findOne({ email });
     if (!user) { res.status(401).json({ error: "Invalid credentials" }); return; }
 
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) { res.status(401).json({ error: "Invalid credentials" }); return; }
 
-    const token = jwt.sign({ id: user._id, role: user.role, email: user.email }, JWT_SECRET, { expiresIn: "7d" });
-    res.json({ token, user: { _id: user._id, name: user.name, email: user.email, role: user.role } });
+    // Auto-downgrade expired plan
+    if (user.plan !== "free" && user.planExpiresAt && user.planExpiresAt < new Date()) {
+      user = await User.findByIdAndUpdate(
+        user._id,
+        { $set: { plan: "free" }, $unset: { planExpiresAt: "" } },
+        { new: true }
+      ) as typeof user;
+    }
+
+    const token = jwt.sign({ id: user._id, role: user.role, email: user.email, plan: user.plan }, JWT_SECRET, { expiresIn: "7d" });
+    res.json({ token, user: { _id: user._id, name: user.name, email: user.email, role: user.role, plan: user.plan } });
   } catch (err) {
     next(err);
   }
@@ -42,7 +51,18 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
 
 export const getMe = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const user = await User.findById((req as any).user.id).select("-password");
+    let user = await User.findById((req as any).user.id).select("-password");
+    if (!user) { res.status(404).json({ error: "User not found" }); return; }
+
+    // Auto-downgrade expired plan
+    if (user.plan !== "free" && user.planExpiresAt && user.planExpiresAt < new Date()) {
+      user = await User.findByIdAndUpdate(
+        user._id,
+        { $set: { plan: "free" }, $unset: { planExpiresAt: "" } },
+        { new: true }
+      ).select("-password") as typeof user;
+    }
+
     res.json(user);
   } catch (err) {
     next(err);

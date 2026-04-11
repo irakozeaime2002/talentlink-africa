@@ -17,6 +17,7 @@ import {
 } from "../controllers/applicationController";
 import { authenticate, requireRole } from "../middleware/auth";
 import { upload } from "../middleware/upload";
+import { limitApplications, limitCVUpload } from "../middleware/planLimits";
 
 const router = Router();
 
@@ -25,8 +26,8 @@ router.get("/applicant/:applicant_id/user", authenticate, requireRole("recruiter
 router.get("/my-jobs-candidates", authenticate, requireRole("recruiter"), getMyJobsCandidates);
 router.get("/my-profile", authenticate, requireRole("applicant"), getMyProfile);
 router.put("/my-profile", authenticate, requireRole("applicant"), updateMyProfile);
-router.post("/my-cv", authenticate, requireRole("applicant"), upload.single("cv"), uploadMyCV);
-router.post("/job/:job_id", authenticate, requireRole("applicant"), upload.array("documents", 10), applyToJob);
+router.post("/my-cv", authenticate, requireRole("applicant"), limitCVUpload, upload.single("cv"), uploadMyCV);
+router.post("/job/:job_id", authenticate, requireRole("applicant"), limitApplications, upload.array("documents", 10), applyToJob);
 router.get("/job/:job_id", authenticate, requireRole("recruiter"), getJobApplications);
 router.get("/job/:job_id/candidates", authenticate, requireRole("recruiter"), getJobApplicantCandidates);
 router.get("/my", authenticate, requireRole("applicant"), getMyApplications);
