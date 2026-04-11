@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useAppSelector } from "../../../store/hooks";
 import { useRouter, useSearchParams } from "next/navigation";
 import { adminGetUsers, adminDeleteUser, adminUpdateUser, adminResetPassword, adminCreateAdmin } from "../../../lib/api";
@@ -15,6 +15,14 @@ const ROLE_COLORS: Record<string, string> = {
 };
 
 export default function AdminUsersPage() {
+  return (
+    <Suspense fallback={null}>
+      <AdminUsersContent />
+    </Suspense>
+  );
+}
+
+function AdminUsersContent() {
   const { user } = useAppSelector((s) => s.auth);
   const router = useRouter();
   const searchParams = useSearchParams();
