@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { loadJobs } from "../store/slices/jobsSlice";
 import { fetchMyJobsCandidates, fetchCandidates } from "../lib/api";
-import { Briefcase, Users, Zap, TrendingUp, FileText, Sparkles, ArrowRight, Brain, Plus, ChevronRight } from "lucide-react";
+import { Briefcase, Users, Zap, TrendingUp, FileText, ArrowRight, Brain, Plus, ChevronRight } from "lucide-react";
 
 export default function DashboardPage() {
   const dispatch = useAppDispatch();
@@ -24,56 +24,13 @@ export default function DashboardPage() {
         .catch(() => {});
     } else if (user?.role === "applicant") {
       router.push("/board");
+    } else if (!user) {
+      router.push("/home");
     }
   }, [dispatch, user, router]);
 
   // Landing page
-  if (!user) {
-    return (
-      <div className={`min-h-[85vh] flex flex-col items-center justify-center text-center px-4 transition-all duration-500 ${mounted ? "animate-fade-in" : "opacity-0"}`}>
-        <div className="relative w-full max-w-4xl rounded-3xl overflow-hidden mb-12 p-12"
-          style={{ background: "linear-gradient(135deg, #0f0c29 0%, #302b63 45%, #24243e 100%)" }}>
-          <div className="absolute top-0 right-0 w-96 h-96 rounded-full opacity-30" style={{ background: "radial-gradient(circle, #6C63FF, transparent 70%)" }} />
-          <div className="absolute bottom-0 left-0 w-72 h-72 rounded-full opacity-20" style={{ background: "radial-gradient(circle, #8B5CF6, transparent 70%)" }} />
-          <div className="relative z-10">
-            <div className="inline-flex items-center gap-2 bg-white/10 text-white/90 text-xs font-semibold px-4 py-2 rounded-full mb-6 border border-white/20 backdrop-blur-sm">
-              <Sparkles size={13} className="text-yellow-300" /> AI-powered · Built for Africa
-            </div>
-            <h1 className="text-5xl md:text-6xl font-extrabold text-white mb-4 leading-tight">
-              🌍 {process.env.NEXT_PUBLIC_APP_NAME?.split(" ").slice(0, -1).join(" ") || "TalentLink"} <span className="bg-gradient-to-r from-indigo-300 to-violet-300 bg-clip-text text-transparent">{process.env.NEXT_PUBLIC_APP_NAME?.split(" ").slice(-1)[0] || "Africa"}</span>
-            </h1>
-            <p className="text-white/70 text-lg mb-8 max-w-lg mx-auto">
-              Smarter hiring powered by Google Gemini. Rank candidates by skills, experience, projects & education instantly.
-            </p>
-            <div className="flex gap-3 justify-center">
-              <Link href="/board" className="bg-white text-indigo-700 font-bold px-8 py-3 rounded-xl hover:bg-indigo-50 transition shadow-lg hover:scale-105 duration-200">
-                Browse Jobs
-              </Link>
-              <Link href="/auth/register" className="btn-glow px-8 py-3 rounded-xl text-white font-bold hover:scale-105 duration-200">
-                Get Started <ArrowRight size={16} className="inline ml-1" />
-              </Link>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 max-w-3xl w-full">
-          {[
-            { icon: Briefcase, title: "Post & Manage Jobs", desc: "Create listings with custom requirements, questions, and deadlines", gradient: "from-indigo-500 to-blue-500" },
-            { icon: Brain, title: "Gemini AI Screening", desc: "Weighted scoring across skills, experience, projects & education", gradient: "from-violet-500 to-purple-500" },
-            { icon: Users, title: "Ranked Shortlists", desc: "Top candidates with full AI reasoning, strengths & gaps", gradient: "from-blue-500 to-cyan-500" },
-          ].map(({ icon: Icon, title, desc, gradient }) => (
-            <div key={title} className="glass-card p-6 text-left group cursor-default">
-              <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform duration-200`}>
-                <Icon size={20} className="text-white" />
-              </div>
-              <p className="font-bold text-gray-900 dark:text-white mb-1.5">{title}</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{desc}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
+  if (!user) return null;
 
   const safeJobs = Array.isArray(jobs) ? jobs : [];
   const openJobs = safeJobs.filter((j) => j.status === "open");
