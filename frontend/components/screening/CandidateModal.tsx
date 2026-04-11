@@ -1,4 +1,6 @@
 "use client";
+import { useEffect } from "react";
+import { createPortal } from "react-dom";
 import { RankedCandidate } from "../../types";
 import ScoreBar from "../ui/ScoreBar";
 import { X, TrendingUp, AlertTriangle, Brain, Star } from "lucide-react";
@@ -20,15 +22,19 @@ const scoreBg = (s: number) =>
 
 export default function CandidateModal({ candidate, onClose }: Props) {
   const rec = REC_CONFIG[candidate.recommendation] || REC_CONFIG["Consider"];
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = ""; };
+  }, []);
 
-  return (
-    <div className="fixed inset-0 z-50 flex" onClick={onClose}>
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center" onClick={onClose}>
       {/* Backdrop */}
-      <div className="flex-1 bg-black/40 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
 
-      {/* Side drawer — slides in from right */}
+      {/* Centered modal */}
       <div
-        className="relative w-full max-w-xl h-full bg-white dark:bg-[#16142a] shadow-2xl flex flex-col overflow-hidden"
+        className="relative w-full max-w-xl max-h-[90vh] bg-white dark:bg-[#16142a] shadow-2xl flex flex-col overflow-hidden rounded-2xl mx-4"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -128,6 +134,7 @@ export default function CandidateModal({ candidate, onClose }: Props) {
 
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
