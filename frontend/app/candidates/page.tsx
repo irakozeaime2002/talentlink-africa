@@ -222,7 +222,7 @@ export default function CandidatesPage() {
           return (
             <button key={s} onClick={() => { setActiveTab("applicants"); setStatusFilter(s); }}
               className={`glass-card p-4 text-left transition-all ${statusFilter === s && activeTab === "applicants" ? "ring-2" : ""}`}
-              style={statusFilter === s && activeTab === "applicants" ? { ringColor: "var(--accent)" } as any : {}}>
+              style={statusFilter === s && activeTab === "applicants" ? { "--tw-ring-color": "var(--accent)" } as any : {}}>
               <div className="flex items-center justify-between mb-2">
                 <span className={`w-2 h-2 rounded-full ${cfg.dot}`} />
                 {statusFilter === s && activeTab === "applicants" && (

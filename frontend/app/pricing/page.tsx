@@ -54,7 +54,7 @@ export default function PricingPage() {
       {/* Plans */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {plans.map(({ icon: Icon, name, price, desc, features, cta, href, highlight }) => (
-          <div key={name} className={`glass-card p-7 flex flex-col relative ${highlight ? "ring-2" : ""}`} style={highlight ? { ringColor: "var(--accent)" } : {}}>
+          <div key={name} className={`glass-card p-7 flex flex-col relative ${highlight ? "ring-2" : ""}`} style={highlight ? { "--tw-ring-color": "var(--accent)" } as any : {}}>
             {highlight && (
               <div className="absolute -top-3 left-1/2 -translate-x-1/2 btn-glow text-white text-xs font-bold px-4 py-1 rounded-full">
                 Most Popular
