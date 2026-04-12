@@ -9,6 +9,13 @@
 | Frontend | https://linkafrica.vercel.app |
 | Backend API | https://talentlink-africa.onrender.com/api |
 
+### Demo Credentials
+
+| Role | Email | Password |
+|---|---|---|
+| Recruiter | nadine@gmail.com | 123456 |
+| Applicant | jacky@gmail.com | 123456 |
+
 ---
 
 ## Overview
