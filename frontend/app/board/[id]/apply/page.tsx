@@ -91,6 +91,27 @@ export default function ApplyPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate required questions
+    if (job?.application_questions?.length) {
+      for (let i = 0; i < job.application_questions.length; i++) {
+        if (!answers[i]?.trim()) {
+          toast.error(`Please answer question ${i + 1}`);
+          return;
+        }
+      }
+    }
+
+    // Validate required documents
+    if (job?.required_documents?.length) {
+      for (const docName of job.required_documents) {
+        if (!docFiles[docName]) {
+          toast.error(`Please upload: ${docName}`);
+          return;
+        }
+      }
+    }
+
     setSubmitting(true);
     try {
       const formData = new FormData();

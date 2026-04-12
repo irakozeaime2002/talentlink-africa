@@ -63,6 +63,8 @@ export const runScreening = async (req: Request, res: Response, next: NextFuncti
       preferred_skills: job.preferred_skills,
       experience_level: job.experience_level,
       responsibilities: job.responsibilities,
+      required_documents: job.required_documents || [],
+      application_questions: job.application_questions || [],
     };
 
     const candidateInputs: CandidateInput[] = candidates.map((c) => {

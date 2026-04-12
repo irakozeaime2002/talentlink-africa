@@ -5,6 +5,8 @@ export interface JobInput {
   preferred_skills: string[];
   experience_level: string;
   responsibilities: string[];
+  required_documents?: string[];
+  application_questions?: string[];
 }
 
 export interface CandidateInput {

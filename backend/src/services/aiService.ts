@@ -53,10 +53,15 @@ For each candidate, read:
 - projects[]: project names, descriptions, technologies used
 - education[]: degree, field, institution, year
 - certifications[]: any professional certifications
-- cv_text (if present): raw CV text — treat as additional evidence for ALL dimensions. Extract any skills, experience, projects, or education mentioned here that are not in the structured fields above.
-- cover_letter (if present): the applicant's motivation letter — use it to assess communication quality, role alignment, and genuine interest. Strong, specific cover letters are a positive signal.
-- application_answers (if present): answers to the recruiter's custom screening questions — these are CRITICAL. Evaluate how well the candidate answered each question. Specific, thoughtful answers that demonstrate knowledge of the role should positively influence the score. Vague or empty answers are a negative signal.
-- attached_documents (if present): text extracted from ANY documents the applicant uploaded (portfolio, certificates, transcripts, work samples, etc.). Each document is labeled with its filename. Read ALL of them carefully — they may contain evidence of skills, qualifications, projects, or certifications not mentioned elsewhere. A portfolio showing real work is strong evidence. A certificate proves a claimed skill. Treat each document according to what it contains.
+- cv_text (if present): raw CV text — treat as additional evidence for ALL dimensions.
+- cover_letter (if present): assess communication quality, role alignment, and genuine interest.
+- application_answers (if present): CRITICAL — evaluate how specifically and thoughtfully each question was answered. Vague or empty answers are a strong negative signal.
+- attached_documents (if present): text extracted from uploaded documents labeled by filename. Read ALL carefully.
+  - Cross-check each document against the job's required_documents list: ${JSON.stringify(job.required_documents || [])}.
+  - For each required document: does the candidate's attached_documents contain it? Does the content match what is expected (e.g. a CV should list experience/skills, a certificate should show a qualification, a portfolio should show real work)?
+  - A required document that is MISSING → flag as a gap and penalize skills score by 10 points per missing document (capped at -30).
+  - A required document that is PRESENT but has LOW QUALITY content (e.g. a CV with no skills or experience, a blank portfolio) → flag as a gap and penalize by 5 points.
+  - A required document that is PRESENT and HIGH QUALITY → treat as a positive signal and use its content as evidence across all dimensions.
 
 ---
 
@@ -150,9 +155,9 @@ Derive recommendation strictly from match_score — no exceptions:
 ## STEP 5 — BUILD OUTPUT
 
 For each candidate:
-- strengths[]: 2–5 bullet points. Each MUST name a specific skill, job title, company, project, or notable answer from the data. No vague statements like "strong background".
-- gaps[]: list every required_skill not found in the candidate's profile. If no gaps, return ["No significant gaps"].
-- reason: exactly 2–3 sentences. Sentence 1: overall fit summary with score. Sentence 2: strongest evidence (including cover letter quality or answer quality if notable). Sentence 3: biggest gap or risk.
+- strengths[]: 2–5 bullet points. Each MUST name a specific skill, job title, company, project, document, or notable answer from the data. No vague statements like "strong background".
+- gaps[]: list every required_skill not found in the candidate's profile AND every required document that is missing or low quality. If no gaps, return ["No significant gaps"].
+- reason: exactly 2–3 sentences. Sentence 1: overall fit summary with score. Sentence 2: strongest evidence (including document quality or answer quality if notable). Sentence 3: biggest gap or risk (missing documents, weak answers, or skill gaps).
 
 ---
 
