@@ -4,7 +4,7 @@ import { useParams } from "next/navigation";
 import { fetchPublicJob, fetchMyApplications } from "../../../lib/api";
 import { Job } from "../../../types";
 import { useAppSelector } from "../../../store/hooks";
-import { MapPin, Briefcase, Clock, CheckCircle, ArrowLeft, ChevronRight, DollarSign, Building2, ListChecks, Star, Paperclip } from "lucide-react";
+import { MapPin, Briefcase, Clock, CheckCircle, ArrowLeft, ChevronRight, DollarSign, Building2, ListChecks, Star, Paperclip, Share, Copy, Check } from "lucide-react";
 import Link from "next/link";
 
 const skillColor = (s: string) => {
@@ -24,6 +24,19 @@ export default function PublicJobDetailPage() {
   const [job, setJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
   const [alreadyApplied, setAlreadyApplied] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const handleShare = () => {
+    navigator.clipboard.writeText(window.location.href);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(window.location.href);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   useEffect(() => {
     fetchPublicJob(id).then((j) => { setJob(j); setLoading(false); });
@@ -89,6 +102,9 @@ export default function PublicJobDetailPage() {
               <span className="shrink-0 flex items-center gap-1.5 bg-emerald-400/20 text-emerald-300 border border-emerald-400/30 text-xs font-bold px-3 py-1.5 rounded-full backdrop-blur-sm">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Open
               </span>
+              <button onClick={handleShare} className="shrink-0 flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-white border border-white/20 text-xs font-bold px-3 py-1.5 rounded-full backdrop-blur-sm transition">
+                {copied ? <><Check size={12} /> Copied!</> : <><Share size={12} /> Share</>}
+              </button>
             </div>
           </div>
         </div>
@@ -237,10 +253,26 @@ export default function PublicJobDetailPage() {
         </div>
       )}
 
-      {/* Recruiter notice */}
       {user?.role === "recruiter" && (
-        <div className="glass-card p-4 text-sm text-amber-700 dark:text-amber-400 text-center border border-amber-200 dark:border-amber-800/30">
-          You're logged in as a recruiter. Switch to an applicant account to apply.
+        <div className="glass-card p-6 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 accent-icon-bg rounded-2xl flex items-center justify-center shrink-0">
+              <Share size={20} className="text-white" />
+            </div>
+            <div>
+              <p className="font-bold text-gray-900 dark:text-white">Share this job</p>
+              <p className="text-xs text-gray-400 mt-0.5">Share or copy the link to send to potential candidates</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button onClick={handleShare} className="flex items-center gap-2 btn-glow text-white px-4 py-2.5 rounded-xl text-sm font-bold transition">
+              {copied ? <><Check size={15} /> Copied!</> : <><Share size={15} /> Share</>}
+            </button>
+            <button onClick={handleCopy} className="flex items-center gap-2 border px-4 py-2.5 rounded-xl text-sm font-bold transition hover:opacity-80"
+              style={{ color: "var(--accent)", borderColor: "var(--accent)" }}>
+              {copied ? <><Check size={15} /> Copied!</> : <><Copy size={15} /> Copy Link</>}
+            </button>
+          </div>
         </div>
       )}
     </div>

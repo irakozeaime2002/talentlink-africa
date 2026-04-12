@@ -10,8 +10,8 @@ interface ApplicantConfig { plan: string; maxApplications: number; maxCVUploads:
 
 const RECRUITER_META = {
   free:       { icon: Zap,      name: "Free",       monthly: 0,     yearly: 0,      desc: "For small teams getting started",           cta: "Get Started Free", href: "/auth/register", highlight: false },
-  pro:        { icon: Building, name: "Pro",        monthly: 10000, yearly: 80000,  desc: "For growing companies hiring regularly",    cta: "Start Pro Trial",  href: "/auth/register", highlight: true  },
-  enterprise: { icon: Rocket,   name: "Enterprise", monthly: 30000, yearly: 240000, desc: "For large organizations with complex needs", cta: "Contact Sales",    href: "/contact",       highlight: false },
+  pro:        { icon: Building, name: "Pro",        monthly: 10000, yearly: 80000,  desc: "For growing companies hiring regularly",    cta: "Start Pro Trial",  href: "/auth/register", highlight: false },
+  enterprise: { icon: Rocket,   name: "Enterprise", monthly: 30000, yearly: 240000, desc: "For large organizations with complex needs", cta: "Upgrade to Enterprise", href: "/auth/register", highlight: true },
 };
 
 const APPLICANT_META = {

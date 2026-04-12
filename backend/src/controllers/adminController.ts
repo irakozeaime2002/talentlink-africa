@@ -266,13 +266,13 @@ export const seedPlanConfigs = async (): Promise<void> => {
     { plan: "enterprise", maxJobs: -1, maxScreeningsPerMonth: -1, csvUpload: true,  resumeUpload: true  },
   ];
   for (const d of defaults) {
-    await PlanConfig.findOneAndUpdate({ plan: d.plan }, d, { upsert: true });
+    await PlanConfig.findOneAndUpdate({ plan: d.plan }, { $setOnInsert: d }, { upsert: true });
   }
   const applicantDefaults = [
     { plan: "free", maxApplications: 5,  maxCVUploads: 1,  profileHighlight: false },
     { plan: "pro",  maxApplications: -1, maxCVUploads: -1, profileHighlight: true  },
   ];
   for (const d of applicantDefaults) {
-    await ApplicantPlanConfig.findOneAndUpdate({ plan: d.plan }, d, { upsert: true });
+    await ApplicantPlanConfig.findOneAndUpdate({ plan: d.plan }, { $setOnInsert: d }, { upsert: true });
   }
 };
