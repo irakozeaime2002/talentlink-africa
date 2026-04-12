@@ -1,6 +1,15 @@
 # TalentLink Africa
 
-> AI-powered talent screening platform built for the **Umurava AI Hackathon** — "AI Products for the Human Resources Industry"
+> AI-powered talent screening platform built for the **Umurava AI Hackathon 2026** — "AI Products for the Human Resources Industry"
+
+## Live Demo
+
+| Service | URL |
+|---|---|
+| Frontend | https://linkafrica.vercel.app |
+| Backend API | https://talentlink-africa.onrender.com/api |
+
+---
 
 ## Overview
 
@@ -18,10 +27,11 @@ TalentLink Africa helps African companies hire smarter and faster by automatical
 - **Candidate Pool** — Manage a pool of candidates separate from job applicants; import via CSV/XLSX or PDF resume bulk upload
 - **Applications Management** — View all applications per job, update application status (pending → reviewed → shortlisted → rejected)
 - **Screen Applicants CTA** — One-click shortcut to screen all applicants who applied to a specific job
+- **Share Job** — Copy job link to share with potential candidates
 
 ### For Applicants
 - **Job Board** — Browse all open jobs publicly; filter and view full job details
-- **Structured Applications** — Submit applications with skills, experience, education, projects, cover letter, and custom Q&A answers
+- **Structured Applications** — Submit applications with skills, experience, education, projects, cover letter, custom Q&A answers, and required documents
 - **Profile Auto-attach** — Professional profile (filled once) auto-attaches to all applications
 - **Edit Applications** — Edit submitted applications before the job deadline while status is still "pending"
 - **My Applications** — Track all submitted applications and their current status in one place
@@ -32,7 +42,8 @@ TalentLink Africa helps African companies hire smarter and faster by automatical
 - **Deterministic Output** — Temperature set to 0 with server-side score recomputation to guarantee formula consistency
 - **Explainability** — Every candidate gets strengths, gaps, a narrative reason, and a recommendation label
 - **Recommendations** — Strongly Recommend / Recommend / Consider / Do Not Recommend derived strictly from score ranges
-- **Candidate Detail Modal** — Full AI report opens in a centered portal modal (covers full viewport on any screen size)
+- **Document Quality Evaluation** — Uploaded documents are parsed and cross-checked against job requirements; missing or low-quality documents penalize the score
+- **Candidate Detail Modal** — Full AI report opens in a centered portal modal covering the full viewport
 
 ### AI Chat Assistant
 - **TalentLink Africa AI Assistant** — In-app chat powered by Gemini, context-aware for both recruiter and applicant workflows
@@ -45,6 +56,7 @@ TalentLink Africa helps African companies hire smarter and faster by automatical
 - **Responsive Design** — Fully responsive across mobile, tablet, and desktop
 - **Role-based Access** — Recruiter and Applicant roles with separate dashboards and protected routes
 - **JWT Authentication** — 7-day token expiry with Axios interceptor for automatic header injection
+- **Forgot Password** — Email-based password reset via Resend with 1-hour expiry token
 - **Seed Data** — Load 10 Umurava dummy candidate profiles instantly via `/api/seed/candidates`
 - **Platform Stats** — Live stats endpoint at `/api/seed/stats`
 
@@ -64,10 +76,61 @@ TalentLink Africa helps African companies hire smarter and faster by automatical
 | `/about` | Public | About TalentLink Africa |
 | `/pricing` | Public | Free / Pro / Enterprise plans |
 | `/contact` | Public | Contact form + FAQ |
+| `/auth/forgot-password` | Public | Password reset request |
+| `/auth/reset-password` | Public | Set new password via token |
 
 ---
 
 ## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        FRONTEND                             │
+│                  Next.js 14 + Tailwind CSS                  │
+│                    Redux Toolkit (state)                    │
+│                                                             │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │
+│  │ Recruiter    │  │ Public Job   │  │ Applicant        │  │
+│  │ Dashboard    │  │ Board        │  │ Dashboard        │  │
+│  │ /jobs        │  │ /board       │  │ /my-applications │  │
+│  │ /candidates  │  │ /board/[id]  │  │ /profile         │  │
+│  └──────────────┘  └──────────────┘  └──────────────────┘  │
+│                         │ Axios + JWT                       │
+└─────────────────────────┼───────────────────────────────────┘
+                          │
+┌─────────────────────────▼───────────────────────────────────┐
+│                        BACKEND                              │
+│               Node.js + Express + TypeScript                │
+│                                                             │
+│  ┌──────────┐ ┌──────────┐ ┌────────────┐ ┌─────────────┐  │
+│  │   Auth   │ │   Jobs   │ │ Candidates │ │ Screening   │  │
+│  │  Routes  │ │  Routes  │ │  Routes    │ │  Routes     │  │
+│  └──────────┘ └──────────┘ └────────────┘ └──────┬──────┘  │
+│                                                   │         │
+│  ┌────────────────────────────────────────────────▼──────┐  │
+│  │                    AI Service                         │  │
+│  │  buildPrompt() → Gemini API → parseOutput()           │  │
+│  │  Server-side score recomputation → ScreeningResult    │  │
+│  └───────────────────────────────────────────────────────┘  │
+│                         │                                   │
+└─────────────────────────┼───────────────────────────────────┘
+                          │
+┌─────────────────────────▼───────────────────────────────────┐
+│                      DATABASE                               │
+│                    MongoDB Atlas                            │
+│                                                             │
+│   Users │ Jobs │ Candidates │ Applications │ ScreeningResults│
+└─────────────────────────────────────────────────────────────┘
+                          │
+┌─────────────────────────▼───────────────────────────────────┐
+│                     GEMINI API                              │
+│            gemini-2.5-flash (primary model)                 │
+│   Fallback: gemini-2.0-flash → gemini-2.0-flash-001         │
+│                  → gemini-pro-latest                        │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### File Structure
 
 ```
 job_recruiter/
@@ -95,22 +158,23 @@ job_recruiter/
 │       ├── routes/
 │       └── services/
 │           ├── aiService.ts        # Gemini screening + multi-model fallback
+│           ├── emailService.ts     # Resend password reset emails
 │           └── parserService.ts    # PDF text extraction, CSV parsing
 │
 └── frontend/                       # Next.js 14 + Tailwind + Redux
     ├── app/
     │   ├── page.tsx                # Landing / Recruiter dashboard
-    │   ├── about/                  # About page
-    │   ├── pricing/                # Pricing plans
-    │   ├── contact/                # Contact form
+    │   ├── about/
+    │   ├── pricing/
+    │   ├── contact/
     │   ├── auth/login/
     │   ├── auth/register/
+    │   ├── auth/forgot-password/
+    │   ├── auth/reset-password/
     │   ├── board/                  # Public job board
     │   ├── board/[id]/             # Job detail + application form
     │   ├── jobs/                   # Recruiter job management
     │   ├── jobs/[id]/              # Job detail + Applications + AI Screening tabs
-    │   ├── jobs/[id]/edit/
-    │   ├── jobs/new/
     │   ├── candidates/             # Candidate pool
     │   ├── my-applications/        # Applicant's applications
     │   └── profile/
@@ -142,9 +206,10 @@ job_recruiter/
 
 ### Scenario 2 — External Job Board Applicants
 1. Job is published to `/board`
-2. Applicants register, browse, and submit structured applications
+2. Applicants register, browse, and submit structured applications with documents
 3. Each application auto-creates/updates a Candidate record in the pool
 4. Recruiter clicks "Screen Applicants" — matched candidates are auto-loaded for AI screening
+5. Uploaded documents (CV, portfolio, certificates) are parsed and included as evidence in the AI prompt
 
 ### Gemini Scoring Model
 
@@ -170,9 +235,39 @@ job_recruiter/
 - `match_score` — weighted score 0–100 (recomputed server-side)
 - `score_breakdown` — individual scores per dimension
 - `strengths[]` — concrete positives referencing actual skills, titles, and project names
-- `gaps[]` — missing requirements or risks
+- `gaps[]` — missing requirements, missing documents, or risks
 - `reason` — 2–3 sentence narrative
 - `recommendation` — label derived strictly from score range
+
+### Prompt Engineering
+
+The AI prompt is structured in 5 explicit steps:
+
+**STEP 1 — Job Understanding**
+The prompt injects the full job object (title, description, required skills, preferred skills, experience level, responsibilities, required documents, application questions) as JSON. Gemini is instructed to extract must-have skills, preferred skills, seniority bar, and day-to-day responsibilities before scoring.
+
+**STEP 2 — Candidate Understanding**
+Each candidate's full profile is injected: skills, experience, projects, education, certifications, CV text (from PDF parse), cover letter, application answers, and attached document texts. Documents are labeled by filename so Gemini knows what each file is.
+
+**STEP 3 — Dimension Scoring (0–100 each)**
+Gemini follows strict algorithmic rubrics — not free-form judgment:
+- **Skills**: required skill match ratio × 100 + preferred skill bonuses (capped at +20)
+- **Experience**: fixed seniority matrix (candidate level vs job level) + domain relevance adjustment
+- **Projects**: relevance count scale (0→10, 1→50, 2→70, 3+→85) + quality bonus per project
+- **Education**: fixed scale from "no data" (25) to "related degree + multiple certs" (95)
+- **Documents**: missing required document = −10 per doc; low-quality document = −5; high-quality = positive evidence
+
+**STEP 4 — Score Computation**
+Gemini computes the weighted formula. The backend then **recomputes** the score independently from the breakdown to guarantee formula consistency regardless of any Gemini rounding.
+
+**STEP 5 — Output Generation**
+Strengths must reference specific skill names, job titles, companies, or project names. Gaps must list every missing required skill and every missing/low-quality required document. Reason is exactly 2–3 sentences.
+
+**Determinism Guarantees:**
+- `temperature: 0` — no randomness in Gemini output
+- Server-side recomputation — scores are always recalculated from breakdown
+- Re-ranking server-side — candidates are re-sorted and re-ranked after recomputation
+- Structured JSON output only — no markdown, no free-form text outside JSON
 
 ### Explainability Principles
 - Gemini references actual skills, job titles, and project names — no vague statements
@@ -189,6 +284,7 @@ job_recruiter/
 - Node.js 18+
 - MongoDB Atlas account
 - Google Gemini API key
+- Resend account (for password reset emails)
 
 ### Backend
 
@@ -196,7 +292,7 @@ job_recruiter/
 cd backend
 npm install
 cp .env.example .env
-# Fill in MONGODB_URI, GEMINI_API_KEY, JWT_SECRET
+# Fill in MONGODB_URI, GEMINI_API_KEY, JWT_SECRET, RESEND_API_KEY
 npm run dev
 ```
 
@@ -221,6 +317,8 @@ MONGODB_URI=your_mongodb_atlas_connection_string
 GEMINI_API_KEY=your_gemini_api_key
 JWT_SECRET=your_jwt_secret_key
 CLIENT_URL=http://localhost:3000
+RESEND_API_KEY=your_resend_api_key
+RESEND_FROM=TalentLink Africa <onboarding@resend.dev>
 ```
 
 ### Frontend `.env`
@@ -239,6 +337,8 @@ NEXT_PUBLIC_API_URL=http://localhost:5000/api
 | POST | /api/auth/login | Login |
 | GET | /api/auth/me | Get current user |
 | PUT | /api/auth/me | Update profile |
+| POST | /api/auth/forgot-password | Request password reset email |
+| POST | /api/auth/reset-password | Reset password with token |
 
 ### Jobs
 | Method | Endpoint | Auth | Description |
@@ -274,7 +374,9 @@ NEXT_PUBLIC_API_URL=http://localhost:5000/api
 | POST | /api/applications/job/:job_id | Applicant | Submit application |
 | GET | /api/applications/job/:job_id | Recruiter | View applications for job |
 | GET | /api/applications/my | Applicant | View own applications |
+| PATCH | /api/applications/:id | Applicant | Edit application |
 | PATCH | /api/applications/:id/status | Recruiter | Update status |
+| DELETE | /api/applications/:id | Applicant | Cancel application |
 
 ### Chat
 | Method | Endpoint | Description |
@@ -298,9 +400,10 @@ NEXT_PUBLIC_API_URL=http://localhost:5000/api
 | Database | MongoDB Atlas (Mongoose) |
 | AI | Google Gemini API (gemini-2.5-flash + fallback chain) |
 | Auth | JWT (bcryptjs + jsonwebtoken, 7-day expiry) |
+| Email | Resend (password reset) |
 | File Parsing | pdf-parse, xlsx |
 | Theming | CSS variables, React Context (dark mode + 6 accent colors) |
-| Deployment | Vercel (frontend), Railway/Render (backend) |
+| Deployment | Vercel (frontend), Render (backend) |
 
 ---
 
@@ -309,10 +412,12 @@ NEXT_PUBLIC_API_URL=http://localhost:5000/api
 - PDF resume parsing extracts raw text; Gemini handles semantic interpretation
 - CSV must have columns: `name`, `email`, `skills` (comma-separated), `experience`, `certifications`
 - AI screening is deterministic at temperature 0; scores are recomputed server-side after Gemini responds
-- No email notifications (can be added with SendGrid/Resend)
-- No resume file storage (can be added with AWS S3 or Cloudinary)
+- Document quality evaluation is AI-driven — Gemini interprets document content based on extracted text
+- Resend free tier only sends to the verified account email; a custom domain is needed for production
 - Refresh tokens not implemented (JWT 7-day expiry only)
-- Applicants cannot see their AI scores — only application status is exposed
+- Applicants cannot see their AI scores — only application status is exposed to preserve hiring integrity
+- No resume file storage (files are stored as base64 in MongoDB; AWS S3 recommended for scale)
+- AI model availability depends on Gemini API quota; multi-model fallback handles temporary outages
 
 ---
 
@@ -324,14 +429,10 @@ cd frontend && npm run build
 # Deploy to Vercel — set NEXT_PUBLIC_API_URL to your backend URL
 ```
 
-### Backend (Railway / Render)
+### Backend (Render)
 ```bash
 cd backend && npm run build
-# Set all environment variables in the hosting dashboard
+# Set all environment variables in the Render dashboard
+# Build command: npm run build
 # Start command: node dist/index.js
 ```
-
-
-git add .
-git commit -m Initial commit TalentLink Africa
-git push
