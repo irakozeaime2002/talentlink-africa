@@ -16,6 +16,8 @@
 | Recruiter | nadine@gmail.com | 123456 |
 | Applicant | jacky@gmail.com | 123456 |
 
+> Both accounts contain dummy data for testing — jobs, candidates, applications, and screening results are pre-loaded.
+
 ---
 
 ## Overview
