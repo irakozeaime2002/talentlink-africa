@@ -1,14 +1,14 @@
 "use client";
 import { useState, useEffect, Suspense } from "react";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
-import { updateProfile, upgradePlan } from "../../store/slices/authSlice";
+import { updateProfile } from "../../store/slices/authSlice";
 import { loadMyApplications } from "../../store/slices/applicationsSlice";
 import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import Link from "next/link";
 import { Job, User } from "../../types";
-import { fetchMyProfile, updateMyProfile, uploadMyCV, initiatePayment, verifyPayment } from "../../lib/api";
-import { Plus, Minus, Save, Paperclip, Upload, User as UserIcon, Briefcase, GraduationCap, FolderGit2, Phone, ArrowLeft, Crown, X, Loader2 } from "lucide-react";
+import { fetchMyProfile, updateMyProfile, uploadMyCV } from "../../lib/api";
+import { Plus, Minus, Save, Paperclip, Upload, User as UserIcon, Briefcase, GraduationCap, FolderGit2, Phone, ArrowLeft, Crown } from "lucide-react";
 
 type ExpEntry = { title: string; company: string; duration: string; description: string };
 type EduEntry = { degree: string; field: string; institution: string; year: string };
@@ -27,15 +27,12 @@ function ProfileContent() {
   const { user, loading: authLoading } = useAppSelector((s) => s.auth);
   const { items: applications } = useAppSelector((s) => s.applications);
 
-  // Personal info form
   const [personal, setPersonal] = useState({
     name: "", email: "", phone: "", date_of_birth: "",
     gender: "", nationality: "", residence: "",
     father_name: "", mother_name: "", national_id: "",
   });
   const [personalSaving, setPersonalSaving] = useState(false);
-
-  // Professional profile
   const [profileLoading, setProfileLoading] = useState(false);
   const [profileSaving, setProfileSaving] = useState(false);
   const [cvFilename, setCvFilename] = useState<string | null>(null);
@@ -45,24 +42,15 @@ function ProfileContent() {
   const [experience, setExperience] = useState<ExpEntry[]>([{ title: "", company: "", duration: "", description: "" }]);
   const [education, setEducation] = useState<EduEntry[]>([{ degree: "", field: "", institution: "", year: "" }]);
   const [projects, setProjects] = useState<ProjEntry[]>([{ name: "", description: "", technologies: "" }]);
-
   const [tab, setTab] = useState<Tab>("personal");
-  const [payModal, setPayModal] = useState<{ plan: "pro" | "enterprise"; billing: "monthly" | "yearly" } | null>(null);
-  const [phone, setPhone] = useState("");
-  const [payStatus, setPayStatus] = useState<"idle" | "waiting" | "polling" | "done" | "failed">("idle");
 
   useEffect(() => {
     if (!user) { router.push("/auth/login"); return; }
     setPersonal({
-      name: user.name || "",
-      email: user.email || "",
-      phone: user.phone || "",
-      date_of_birth: user.date_of_birth || "",
-      gender: user.gender || "",
-      nationality: user.nationality || "",
-      residence: user.residence || "",
-      father_name: user.father_name || "",
-      mother_name: user.mother_name || "",
+      name: user.name || "", email: user.email || "", phone: user.phone || "",
+      date_of_birth: user.date_of_birth || "", gender: user.gender || "",
+      nationality: user.nationality || "", residence: user.residence || "",
+      father_name: user.father_name || "", mother_name: user.mother_name || "",
       national_id: user.national_id || "",
     });
     if (user.role === "applicant") {
@@ -124,42 +112,6 @@ function ProfileContent() {
     finally { setProfileSaving(false); }
   };
 
-  const handleInitiatePayment = async () => {
-    if (!payModal || !phone) return;
-    setPayStatus("waiting");
-    try {
-      const { ref } = await initiatePayment(payModal.plan, payModal.billing, phone);
-      setPayStatus("polling");
-      toast.success("Check your phone for the MoMo prompt!");
-      let attempts = 0;
-      const interval = setInterval(async () => {
-        attempts++;
-        try {
-          const result = await verifyPayment(ref);
-          if (result.status === "successful" && result.token && result.user) {
-            clearInterval(interval);
-            setPayStatus("done");
-            import("js-cookie").then(({ default: Cookies }) => Cookies.set("token", result.token!, { expires: 7 }));
-            dispatch(upgradePlan({ plan: payModal.plan, billing: payModal.billing }));
-            toast.success(`🎉 Payment successful! Upgraded to ${payModal.plan} plan.`);
-            setTimeout(() => { setPayModal(null); setPayStatus("idle"); setPhone(""); }, 2000);
-          } else if (result.status === "failed") {
-            clearInterval(interval);
-            setPayStatus("failed");
-            toast.error("Payment failed. Please try again.");
-          } else if (attempts >= 24) {
-            clearInterval(interval);
-            setPayStatus("failed");
-            toast.error("Payment timed out. Please try again.");
-          }
-        } catch { /* keep polling */ }
-      }, 5000);
-    } catch (err: any) {
-      setPayStatus("idle");
-      toast.error(err.message || "Failed to initiate payment");
-    }
-  };
-
   if (!user) return null;
 
   const tabs: { key: Tab; label: string; icon: React.ReactNode }[] = user.role === "applicant"
@@ -172,17 +124,15 @@ function ProfileContent() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-5">
-      {/* Back button when coming from apply page */}
       {returnTo && (
-        <button
-          onClick={() => router.push(returnTo)}
-          className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:opacity-80 transition"
-          style={{ color: "var(--accent)" }}
-        >
+        <button onClick={() => router.push(returnTo)}
+          className="inline-flex items-center gap-1.5 text-sm hover:opacity-80 transition"
+          style={{ color: "var(--accent)" }}>
           <ArrowLeft size={14} /> Back to Application
         </button>
       )}
-      {/* Header card */}
+
+      {/* Header */}
       <div className="btn-glow rounded-2xl p-6 text-white">
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center text-2xl font-bold backdrop-blur-sm">
@@ -194,9 +144,9 @@ function ProfileContent() {
             {user.phone && <p className="text-white/70 text-sm flex items-center gap-1 mt-0.5"><Phone size={12} />{user.phone}</p>}
             <div className="flex items-center gap-2 mt-1">
               <span className="text-xs bg-white/20 px-2.5 py-0.5 rounded-full capitalize font-medium">{user.role}</span>
-              {user.role === "recruiter" && (
+              {(user as any).plan && (user as any).plan !== "free" && (
                 <span className="text-xs bg-white/20 px-2.5 py-0.5 rounded-full capitalize font-medium flex items-center gap-1">
-                  <Crown size={10} /> {user.plan || "free"}
+                  <Crown size={10} /> {(user as any).plan}
                 </span>
               )}
             </div>
@@ -207,14 +157,11 @@ function ProfileContent() {
       {/* Tabs */}
       <div className="flex gap-1 bg-gray-100 dark:bg-white/5 p-1 rounded-xl">
         {tabs.map(({ key, label, icon }) => (
-          <button
-            key={key}
-            onClick={() => setTab(key)}
+          <button key={key} onClick={() => setTab(key)}
             className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition ${
               tab === key ? "bg-white dark:bg-white/10 shadow-sm" : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
             }`}
-            style={tab === key ? { color: "var(--accent)" } : {}}
-          >
+            style={tab === key ? { color: "var(--accent)" } : {}}>
             {icon} {label}
           </button>
         ))}
@@ -223,25 +170,12 @@ function ProfileContent() {
       {/* Personal Info Tab */}
       {tab === "personal" && (
         <form onSubmit={handleSavePersonal} className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm space-y-5">
-          <h2 className="font-bold text-gray-900">Personal Information</h2>
-
+          <h2 className="font-bold text-gray-900 dark:text-white">Personal Information</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className={LABEL}>Full Name</label>
-              <input required value={personal.name} onChange={(e) => setPersonal({ ...personal, name: e.target.value })} className={INPUT} placeholder="John Doe" />
-            </div>
-            <div>
-              <label className={LABEL}>Email Address</label>
-              <input type="email" required value={personal.email} onChange={(e) => setPersonal({ ...personal, email: e.target.value })} className={INPUT} placeholder="john@example.com" />
-            </div>
-            <div>
-              <label className={LABEL}>Phone Number</label>
-              <input value={personal.phone} onChange={(e) => setPersonal({ ...personal, phone: e.target.value })} className={INPUT} placeholder="+250 7XX XXX XXX" />
-            </div>
-            <div>
-              <label className={LABEL}>Date of Birth</label>
-              <input type="date" value={personal.date_of_birth} onChange={(e) => setPersonal({ ...personal, date_of_birth: e.target.value })} className={INPUT} />
-            </div>
+            <div><label className={LABEL}>Full Name</label><input required value={personal.name} onChange={(e) => setPersonal({ ...personal, name: e.target.value })} className={INPUT} placeholder="John Doe" /></div>
+            <div><label className={LABEL}>Email Address</label><input type="email" required value={personal.email} onChange={(e) => setPersonal({ ...personal, email: e.target.value })} className={INPUT} placeholder="john@example.com" /></div>
+            <div><label className={LABEL}>Phone Number</label><input value={personal.phone} onChange={(e) => setPersonal({ ...personal, phone: e.target.value })} className={INPUT} placeholder="+250 7XX XXX XXX" /></div>
+            <div><label className={LABEL}>Date of Birth</label><input type="date" value={personal.date_of_birth} onChange={(e) => setPersonal({ ...personal, date_of_birth: e.target.value })} className={INPUT} /></div>
             <div>
               <label className={LABEL}>Gender</label>
               <select value={personal.gender} onChange={(e) => setPersonal({ ...personal, gender: e.target.value })} className={INPUT}>
@@ -251,56 +185,37 @@ function ProfileContent() {
                 <option value="Prefer not to say">Prefer not to say</option>
               </select>
             </div>
-            <div>
-              <label className={LABEL}>Nationality</label>
-              <input value={personal.nationality} onChange={(e) => setPersonal({ ...personal, nationality: e.target.value })} className={INPUT} placeholder="Rwandan" />
-            </div>
-            <div className="md:col-span-2">
-              <label className={LABEL}>Place of Residence</label>
-              <input value={personal.residence} onChange={(e) => setPersonal({ ...personal, residence: e.target.value })} className={INPUT} placeholder="Kigali, Rwanda" />
-            </div>
+            <div><label className={LABEL}>Nationality</label><input value={personal.nationality} onChange={(e) => setPersonal({ ...personal, nationality: e.target.value })} className={INPUT} placeholder="Rwandan" /></div>
+            <div className="md:col-span-2"><label className={LABEL}>Place of Residence</label><input value={personal.residence} onChange={(e) => setPersonal({ ...personal, residence: e.target.value })} className={INPUT} placeholder="Kigali, Rwanda" /></div>
           </div>
-
           <div className="border-t pt-4">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3">Family Information</h3>
+            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Family Information</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className={LABEL}>Father's Name</label>
-                <input value={personal.father_name} onChange={(e) => setPersonal({ ...personal, father_name: e.target.value })} className={INPUT} placeholder="Father's full name" />
-              </div>
-              <div>
-                <label className={LABEL}>Mother's Name</label>
-                <input value={personal.mother_name} onChange={(e) => setPersonal({ ...personal, mother_name: e.target.value })} className={INPUT} placeholder="Mother's full name" />
-              </div>
-              <div>
-                <label className={LABEL}>National ID Number</label>
-                <input value={personal.national_id} onChange={(e) => setPersonal({ ...personal, national_id: e.target.value })} className={INPUT} placeholder="1 XXXX X XXXXXXX X XX" />
-              </div>
+              <div><label className={LABEL}>Father's Name</label><input value={personal.father_name} onChange={(e) => setPersonal({ ...personal, father_name: e.target.value })} className={INPUT} placeholder="Father's full name" /></div>
+              <div><label className={LABEL}>Mother's Name</label><input value={personal.mother_name} onChange={(e) => setPersonal({ ...personal, mother_name: e.target.value })} className={INPUT} placeholder="Mother's full name" /></div>
+              <div><label className={LABEL}>National ID Number</label><input value={personal.national_id} onChange={(e) => setPersonal({ ...personal, national_id: e.target.value })} className={INPUT} placeholder="1 XXXX X XXXXXXX X XX" /></div>
             </div>
           </div>
-
           <button type="submit" disabled={personalSaving} className="w-full flex items-center justify-center gap-2 btn-glow text-white py-2.5 rounded-xl font-semibold disabled:opacity-50">
             <Save size={15} /> {personalSaving ? "Saving..." : "Save Personal Info"}
           </button>
         </form>
       )}
 
-      {/* Professional Tab (applicants only) */}
+      {/* Professional Tab */}
       {tab === "professional" && user.role === "applicant" && (
         <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="font-bold text-gray-900">Professional Profile</h2>
+              <h2 className="font-bold text-gray-900 dark:text-white">Professional Profile</h2>
               <p className="text-xs text-gray-400 mt-0.5">Auto-used in all your job applications</p>
             </div>
             <button onClick={handleSaveProfile} disabled={profileSaving} className="flex items-center gap-2 btn-glow text-white px-4 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50">
               <Save size={15} /> {profileSaving ? "Saving..." : "Save Profile"}
             </button>
           </div>
-
           {profileLoading ? <p className="text-gray-400 text-sm">Loading...</p> : (
             <>
-              {/* CV Upload */}
               <div className="accent-bg-light border rounded-2xl p-4" style={{ borderColor: "color-mix(in srgb, var(--accent) 20%, transparent)" }}>
                 <label className="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">CV / Resume <span className="text-gray-400 font-normal text-xs">(PDF)</span></label>
                 <div className="flex items-center gap-3">
@@ -316,70 +231,56 @@ function ProfileContent() {
                   )}
                 </div>
               </div>
-
-              {/* Skills & Certs */}
               <div className="grid grid-cols-1 gap-4">
-                <div>
-                  <label className={LABEL}>Skills <span className="text-gray-400 font-normal">(comma-separated)</span></label>
-                  <input value={skills} onChange={(e) => setSkills(e.target.value)} className={INPUT} placeholder="React, Node.js, TypeScript" />
-                </div>
-                <div>
-                  <label className={LABEL}>Certifications <span className="text-gray-400 font-normal">(comma-separated)</span></label>
-                  <input value={certifications} onChange={(e) => setCertifications(e.target.value)} className={INPUT} placeholder="AWS Certified, PMP" />
-                </div>
+                <div><label className={LABEL}>Skills <span className="text-gray-400 font-normal">(comma-separated)</span></label><input value={skills} onChange={(e) => setSkills(e.target.value)} className={INPUT} placeholder="React, Node.js, TypeScript" /></div>
+                <div><label className={LABEL}>Certifications <span className="text-gray-400 font-normal">(comma-separated)</span></label><input value={certifications} onChange={(e) => setCertifications(e.target.value)} className={INPUT} placeholder="AWS Certified, PMP" /></div>
               </div>
-
-              {/* Experience */}
               <div>
                 <div className="flex justify-between items-center mb-3">
                   <h3 className="font-semibold text-sm flex items-center gap-1.5"><Briefcase size={14} style={{ color: "var(--accent)" }} />Work Experience</h3>
                   <button type="button" onClick={() => setExperience([...experience, { title: "", company: "", duration: "", description: "" }])} className="text-xs flex items-center gap-1 hover:underline" style={{ color: "var(--accent)" }}><Plus size={13} /> Add</button>
                 </div>
                 {experience.map((exp, i) => (
-                  <div key={i} className="border rounded-xl p-4 mb-3 space-y-2 bg-gray-50">
+                  <div key={i} className="border rounded-xl p-4 mb-3 space-y-2 bg-gray-50 dark:bg-white/5">
                     <div className="grid grid-cols-2 gap-2">
-                      <input placeholder="Job Title" value={exp.title} onChange={(e) => { const n = [...experience]; n[i].title = e.target.value; setExperience(n); }} className="border rounded-lg px-3 py-2 text-sm bg-white" />
-                      <input placeholder="Company" value={exp.company} onChange={(e) => { const n = [...experience]; n[i].company = e.target.value; setExperience(n); }} className="border rounded-lg px-3 py-2 text-sm bg-white" />
+                      <input placeholder="Job Title" value={exp.title} onChange={(e) => { const n = [...experience]; n[i].title = e.target.value; setExperience(n); }} className="border rounded-lg px-3 py-2 text-sm bg-white dark:bg-white/10 dark:border-white/10 dark:text-gray-200" />
+                      <input placeholder="Company" value={exp.company} onChange={(e) => { const n = [...experience]; n[i].company = e.target.value; setExperience(n); }} className="border rounded-lg px-3 py-2 text-sm bg-white dark:bg-white/10 dark:border-white/10 dark:text-gray-200" />
                     </div>
-                    <input placeholder="Duration (e.g. 2021–2023)" value={exp.duration} onChange={(e) => { const n = [...experience]; n[i].duration = e.target.value; setExperience(n); }} className="w-full border rounded-lg px-3 py-2 text-sm bg-white" />
-                    <textarea placeholder="Description" value={exp.description} onChange={(e) => { const n = [...experience]; n[i].description = e.target.value; setExperience(n); }} className="w-full border rounded-lg px-3 py-2 text-sm bg-white" rows={2} />
+                    <input placeholder="Duration (e.g. 2021–2023)" value={exp.duration} onChange={(e) => { const n = [...experience]; n[i].duration = e.target.value; setExperience(n); }} className="w-full border rounded-lg px-3 py-2 text-sm bg-white dark:bg-white/10 dark:border-white/10 dark:text-gray-200" />
+                    <textarea placeholder="Description" value={exp.description} onChange={(e) => { const n = [...experience]; n[i].description = e.target.value; setExperience(n); }} className="w-full border rounded-lg px-3 py-2 text-sm bg-white dark:bg-white/10 dark:border-white/10 dark:text-gray-200" rows={2} />
                     {experience.length > 1 && <button type="button" onClick={() => setExperience(experience.filter((_, j) => j !== i))} className="text-red-500 text-xs flex items-center gap-1"><Minus size={12} /> Remove</button>}
                   </div>
                 ))}
               </div>
-
-              {/* Education */}
               <div>
                 <div className="flex justify-between items-center mb-3">
                   <h3 className="font-semibold text-sm flex items-center gap-1.5"><GraduationCap size={14} style={{ color: "var(--accent)" }} />Education</h3>
                   <button type="button" onClick={() => setEducation([...education, { degree: "", field: "", institution: "", year: "" }])} className="text-xs flex items-center gap-1 hover:underline" style={{ color: "var(--accent)" }}><Plus size={13} /> Add</button>
                 </div>
                 {education.map((edu, i) => (
-                  <div key={i} className="border rounded-xl p-4 mb-3 space-y-2 bg-gray-50">
+                  <div key={i} className="border rounded-xl p-4 mb-3 space-y-2 bg-gray-50 dark:bg-white/5">
                     <div className="grid grid-cols-2 gap-2">
-                      <input placeholder="Degree (e.g. BSc)" value={edu.degree} onChange={(e) => { const n = [...education]; n[i].degree = e.target.value; setEducation(n); }} className="border rounded-lg px-3 py-2 text-sm bg-white" />
-                      <input placeholder="Field of Study" value={edu.field} onChange={(e) => { const n = [...education]; n[i].field = e.target.value; setEducation(n); }} className="border rounded-lg px-3 py-2 text-sm bg-white" />
+                      <input placeholder="Degree (e.g. BSc)" value={edu.degree} onChange={(e) => { const n = [...education]; n[i].degree = e.target.value; setEducation(n); }} className="border rounded-lg px-3 py-2 text-sm bg-white dark:bg-white/10 dark:border-white/10 dark:text-gray-200" />
+                      <input placeholder="Field of Study" value={edu.field} onChange={(e) => { const n = [...education]; n[i].field = e.target.value; setEducation(n); }} className="border rounded-lg px-3 py-2 text-sm bg-white dark:bg-white/10 dark:border-white/10 dark:text-gray-200" />
                     </div>
                     <div className="grid grid-cols-2 gap-2">
-                      <input placeholder="Institution" value={edu.institution} onChange={(e) => { const n = [...education]; n[i].institution = e.target.value; setEducation(n); }} className="border rounded-lg px-3 py-2 text-sm bg-white" />
-                      <input placeholder="Year (e.g. 2020–2023)" value={edu.year} onChange={(e) => { const n = [...education]; n[i].year = e.target.value; setEducation(n); }} className="border rounded-lg px-3 py-2 text-sm bg-white" />
+                      <input placeholder="Institution" value={edu.institution} onChange={(e) => { const n = [...education]; n[i].institution = e.target.value; setEducation(n); }} className="border rounded-lg px-3 py-2 text-sm bg-white dark:bg-white/10 dark:border-white/10 dark:text-gray-200" />
+                      <input placeholder="Year" value={edu.year} onChange={(e) => { const n = [...education]; n[i].year = e.target.value; setEducation(n); }} className="border rounded-lg px-3 py-2 text-sm bg-white dark:bg-white/10 dark:border-white/10 dark:text-gray-200" />
                     </div>
                     {education.length > 1 && <button type="button" onClick={() => setEducation(education.filter((_, j) => j !== i))} className="text-red-500 text-xs flex items-center gap-1"><Minus size={12} /> Remove</button>}
                   </div>
                 ))}
               </div>
-
-              {/* Projects */}
               <div>
                 <div className="flex justify-between items-center mb-3">
                   <h3 className="font-semibold text-sm flex items-center gap-1.5"><FolderGit2 size={14} style={{ color: "var(--accent)" }} />Projects</h3>
                   <button type="button" onClick={() => setProjects([...projects, { name: "", description: "", technologies: "" }])} className="text-xs flex items-center gap-1 hover:underline" style={{ color: "var(--accent)" }}><Plus size={13} /> Add</button>
                 </div>
                 {projects.map((proj, i) => (
-                  <div key={i} className="border rounded-xl p-4 mb-3 space-y-2 bg-gray-50">
-                    <input placeholder="Project Name" value={proj.name} onChange={(e) => { const n = [...projects]; n[i].name = e.target.value; setProjects(n); }} className="w-full border rounded-lg px-3 py-2 text-sm bg-white" />
-                    <textarea placeholder="Description" value={proj.description} onChange={(e) => { const n = [...projects]; n[i].description = e.target.value; setProjects(n); }} className="w-full border rounded-lg px-3 py-2 text-sm bg-white" rows={2} />
-                    <input placeholder="Technologies (comma-separated)" value={proj.technologies} onChange={(e) => { const n = [...projects]; n[i].technologies = e.target.value; setProjects(n); }} className="w-full border rounded-lg px-3 py-2 text-sm bg-white" />
+                  <div key={i} className="border rounded-xl p-4 mb-3 space-y-2 bg-gray-50 dark:bg-white/5">
+                    <input placeholder="Project Name" value={proj.name} onChange={(e) => { const n = [...projects]; n[i].name = e.target.value; setProjects(n); }} className="w-full border rounded-lg px-3 py-2 text-sm bg-white dark:bg-white/10 dark:border-white/10 dark:text-gray-200" />
+                    <textarea placeholder="Description" value={proj.description} onChange={(e) => { const n = [...projects]; n[i].description = e.target.value; setProjects(n); }} className="w-full border rounded-lg px-3 py-2 text-sm bg-white dark:bg-white/10 dark:border-white/10 dark:text-gray-200" rows={2} />
+                    <input placeholder="Technologies (comma-separated)" value={proj.technologies} onChange={(e) => { const n = [...projects]; n[i].technologies = e.target.value; setProjects(n); }} className="w-full border rounded-lg px-3 py-2 text-sm bg-white dark:bg-white/10 dark:border-white/10 dark:text-gray-200" />
                     {projects.length > 1 && <button type="button" onClick={() => setProjects(projects.filter((_, j) => j !== i))} className="text-red-500 text-xs flex items-center gap-1"><Minus size={12} /> Remove</button>}
                   </div>
                 ))}
@@ -393,7 +294,7 @@ function ProfileContent() {
       {tab === "applications" && user.role === "applicant" && (
         <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-bold text-gray-900">Application History</h2>
+            <h2 className="font-bold text-gray-900 dark:text-white">Application History</h2>
             <Link href="/my-applications" className="text-sm font-medium hover:underline" style={{ color: "var(--accent)" }}>View all →</Link>
           </div>
           {applications.length === 0 ? (
@@ -406,7 +307,7 @@ function ProfileContent() {
                 return (
                   <div key={app._id} className="flex items-center justify-between py-2.5 border-b last:border-0">
                     <div>
-                      <p className="font-medium text-sm text-gray-800">{typeof job === "object" ? job.title : "Job"}</p>
+                      <p className="font-medium text-sm text-gray-800 dark:text-gray-200">{typeof job === "object" ? job.title : "Job"}</p>
                       <p className="text-xs text-gray-400">{new Date(app.createdAt).toLocaleDateString()}</p>
                     </div>
                     <span className={`text-xs px-2.5 py-1 rounded-full font-semibold capitalize ${sc[app.status]}`}>{app.status}</span>
@@ -418,86 +319,30 @@ function ProfileContent() {
         </div>
       )}
 
-      {/* Plan Management — applicants */}
-      {user.role === "applicant" && (
-        <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-6 shadow-sm space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="font-bold text-gray-900 dark:text-white flex items-center gap-2"><Crown size={16} style={{ color: "var(--accent)" }} /> My Plan</h2>
-              <p className="text-sm text-gray-500 mt-0.5 capitalize">
-                You are on the <strong>{user.plan || "free"}</strong> plan
-                {user.planExpiresAt && ` · expires ${new Date(user.planExpiresAt).toLocaleDateString()}`}
-              </p>
+      {/* Plan section — links to pricing */}
+      {(user.role === "applicant" || user.role === "recruiter") && (
+        <div className="glass-card p-6 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl accent-icon-bg flex items-center justify-center">
+              <Crown size={18} className="text-white" />
             </div>
-            <Link href="/pricing" className="text-sm font-medium hover:underline" style={{ color: "var(--accent)" }}>View plans →</Link>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            {(["free", "pro"] as const).map((p) => (
-              <div key={p} className={`border rounded-xl p-4 text-center ${
-                (user.plan || "free") === p ? "ring-2 bg-gray-50 dark:bg-white/10" : "opacity-70"
-              }`} style={(user.plan || "free") === p ? { "--tw-ring-color": "var(--accent)" } as any : {}}>
-                <p className="font-bold capitalize text-gray-800 dark:text-gray-200">{p}</p>
-                <p className="text-xs text-gray-400 mb-3">{p === "free" ? "RWF 0" : "RWF 5,000/mo"}</p>
-                {(user.plan || "free") !== p ? (
-                  <button
-                    onClick={() => setPayModal({ plan: "pro", billing: "monthly" })}
-                    className="w-full btn-glow text-white text-xs py-1.5 rounded-lg font-semibold"
-                  >
-                    Upgrade
-                  </button>
-                ) : (
-                  <span className="text-xs font-semibold" style={{ color: "var(--accent)" }}>✓ Active</span>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Plan Management (recruiters only) */}
-      {user.role === "recruiter" && (
-        <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-6 shadow-sm space-y-4">
-          <div className="flex items-center justify-between">
             <div>
-              <h2 className="font-bold text-gray-900 dark:text-white flex items-center gap-2"><Crown size={16} style={{ color: "var(--accent)" }} /> Current Plan</h2>
-              <p className="text-sm text-gray-500 mt-0.5 capitalize">
-                You are on the <strong>{user.plan || "free"}</strong> plan
-                {user.planExpiresAt && ` · expires ${new Date(user.planExpiresAt).toLocaleDateString()}`}
+              <p className="font-bold text-gray-900 dark:text-white">
+                Current Plan: <span className="capitalize" style={{ color: "var(--accent)" }}>{(user as any).plan || "Free"}</span>
               </p>
+              <p className="text-xs text-gray-400 mt-0.5">Upgrade to unlock more features</p>
             </div>
-            <Link href="/pricing" className="text-sm font-medium hover:underline" style={{ color: "var(--accent)" }}>View plans →</Link>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {(["free", "pro", "enterprise"] as const).map((p) => (
-              <div key={p} className={`border rounded-xl p-4 text-center ${
-                (user.plan || "free") === p
-                  ? "ring-2 bg-gray-50 dark:bg-white/10"
-                  : "opacity-70"
-              }`} style={(user.plan || "free") === p ? { "--tw-ring-color": "var(--accent)" } as any : {}}>
-                <p className="font-bold capitalize text-gray-800 dark:text-gray-200">{p}</p>
-                <p className="text-xs text-gray-400 mb-3">
-                  {p === "free" ? "RWF 0" : p === "pro" ? "RWF 10,000/mo" : "RWF 30,000/mo"}
-                </p>
-                {(user.plan || "free") !== p ? (
-                  <button
-                    onClick={() => p !== "free" && setPayModal({ plan: p as "pro" | "enterprise", billing: "monthly" })}
-                    className="w-full btn-glow text-white text-xs py-1.5 rounded-lg font-semibold"
-                  >
-                    {p === "free" ? "Downgrade" : "Upgrade"}
-                  </button>
-                ) : (
-                  <span className="text-xs font-semibold" style={{ color: "var(--accent)" }}>✓ Active</span>
-                )}
-              </div>
-            ))}
-          </div>
+          <Link href="/pricing" className="btn-glow text-white px-4 py-2 rounded-xl text-sm font-semibold">
+            Upgrade Plan
+          </Link>
         </div>
       )}
 
       {/* Recruiter quick links */}
       {user.role === "recruiter" && (
-        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-          <h2 className="font-bold text-gray-900 mb-4">Quick Actions</h2>
+        <div className="glass-card p-6">
+          <h2 className="font-bold text-gray-900 dark:text-white mb-4">Quick Actions</h2>
           <div className="grid grid-cols-2 gap-3">
             {[
               { href: "/jobs/new", label: "✏️ Create New Job" },
@@ -507,76 +352,6 @@ function ProfileContent() {
             ].map(({ href, label }) => (
               <Link key={href} href={href} className="glass-card px-4 py-3 text-sm font-medium text-center hover:opacity-80 transition dark:text-gray-300">{label}</Link>
             ))}
-          </div>
-        </div>
-      )}
-      {/* Payment Modal */}
-      {payModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-5">
-            <div className="flex items-center justify-between">
-              <h2 className="font-bold text-lg text-gray-900 dark:text-white flex items-center gap-2">
-                <Crown size={18} style={{ color: "var(--accent)" }} />
-                Upgrade to {payModal.plan.charAt(0).toUpperCase() + payModal.plan.slice(1)}
-              </h2>
-              <button onClick={() => { setPayModal(null); setPayStatus("idle"); setPhone(""); }} className="text-gray-400 hover:text-gray-600">
-                <X size={20} />
-              </button>
-            </div>
-
-            {/* Billing toggle */}
-            <div className="flex gap-2">
-              {(["monthly", "yearly"] as const).map((b) => (
-                <button
-                  key={b}
-                  onClick={() => setPayModal({ ...payModal, billing: b })}
-                  className={`flex-1 py-2 rounded-xl text-sm font-semibold border transition ${
-                    payModal.billing === b ? "btn-glow text-white border-transparent" : "border-gray-200 dark:border-white/10 text-gray-500"
-                  }`}
-                >
-                  {b === "monthly" ? `Monthly — RWF ${payModal.plan === "pro" && user.role === "applicant" ? "5,000" : payModal.plan === "pro" ? "10,000" : "30,000"}` : `Yearly — RWF ${payModal.plan === "pro" && user.role === "applicant" ? "40,000" : payModal.plan === "pro" ? "80,000" : "240,000"}`}
-                </button>
-              ))}
-            </div>
-
-            {payStatus === "done" ? (
-              <div className="text-center py-6">
-                <p className="text-4xl mb-2">🎉</p>
-                <p className="font-bold text-green-600">Payment Successful!</p>
-                <p className="text-sm text-gray-400">Your plan has been upgraded.</p>
-              </div>
-            ) : payStatus === "polling" ? (
-              <div className="text-center py-6 space-y-3">
-                <Loader2 size={32} className="animate-spin mx-auto" style={{ color: "var(--accent)" }} />
-                <p className="font-semibold text-gray-700 dark:text-gray-300">Waiting for payment confirmation...</p>
-                <p className="text-sm text-gray-400">Approve the MoMo prompt on your phone</p>
-              </div>
-            ) : (
-              <>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    MTN / Airtel MoMo Number
-                  </label>
-                  <input
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="e.g. 0781234567"
-                    className="w-full border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)] bg-white dark:bg-white/5 dark:text-gray-200"
-                  />
-                  <p className="text-xs text-gray-400 mt-1">You will receive a payment prompt on this number</p>
-                </div>
-                <button
-                  disabled={!phone || payStatus === "waiting"}
-                  onClick={handleInitiatePayment}
-                  className="w-full btn-glow text-white py-3 rounded-xl font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {payStatus === "waiting" ? <><Loader2 size={16} className="animate-spin" /> Sending prompt...</> : `Pay RWF ${payModal.billing === "monthly" ? (payModal.plan === "pro" && user.role === "applicant" ? "5,000" : payModal.plan === "pro" ? "10,000" : "30,000") : (payModal.plan === "pro" && user.role === "applicant" ? "40,000" : payModal.plan === "pro" ? "80,000" : "240,000")}`}
-                </button>
-                {payStatus === "failed" && (
-                  <p className="text-center text-sm text-red-500">Payment failed or timed out. Try again.</p>
-                )}
-              </>
-            )}
           </div>
         </div>
       )}

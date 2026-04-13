@@ -322,11 +322,11 @@ npm run dev
 ### Backend `.env`
 ```
 PORT=5000
-MONGODB_URI=your_mongodb_atlas_connection_string
-GEMINI_API_KEY=your_gemini_api_key
-JWT_SECRET=your_jwt_secret_key
+MONGODB_URI=my_mongodb_atlas_connection_string
+GEMINI_API_KEY=my_gemini_api_key
+JWT_SECRET=my_jwt_secret_key
 CLIENT_URL=http://localhost:3000
-RESEND_API_KEY=your_resend_api_key
+RESEND_API_KEY=my_resend_api_key
 RESEND_FROM=TalentLink Africa <onboarding@resend.dev>
 ```
 

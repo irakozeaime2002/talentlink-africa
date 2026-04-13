@@ -51,6 +51,36 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
   }
 };
 
+export const upgradePlan = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { plan, billing } = req.body;
+    if (!["free", "pro", "enterprise"].includes(plan)) {
+      res.status(400).json({ error: "Invalid plan" }); return;
+    }
+    // Calculate expiry: monthly = 30 days, yearly = 365 days
+    const days = billing === "yearly" ? 365 : 30;
+    const planExpiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+
+    const user = await User.findByIdAndUpdate(
+      (req as any).user.id,
+      { plan, planExpiresAt },
+      { new: true }
+    ).select("-password");
+
+    if (!user) { res.status(404).json({ error: "User not found" }); return; }
+
+    // Issue new token with updated plan info
+    const jwt = await import("jsonwebtoken");
+    const token = jwt.default.sign(
+      { id: user._id, role: user.role, email: user.email },
+      process.env.JWT_SECRET as string,
+      { expiresIn: "7d" }
+    );
+
+    res.json({ user, token });
+  } catch (err) { next(err); }
+};
+
 export const getMe = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     let user = await User.findById((req as any).user.id).select("-password");

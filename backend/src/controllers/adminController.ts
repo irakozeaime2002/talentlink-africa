@@ -68,10 +68,10 @@ export const getUser = async (req: Request, res: Response, next: NextFunction): 
 
 export const updateUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { name, email, role, phone } = req.body;
+    const { name, email, role, phone, plan, planExpiresAt } = req.body;
     const user = await User.findByIdAndUpdate(
       req.params.id,
-      { name, email, role, phone },
+      { name, email, role, phone, ...(plan ? { plan } : {}), ...(planExpiresAt ? { planExpiresAt } : {}) },
       { new: true }
     ).select("-password");
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
@@ -180,22 +180,10 @@ export const createAdmin = async (req: Request, res: Response, next: NextFunctio
 
 // ── Plan Config ───────────────────────────────────────────────────────────────
 // ── Subscriptions ────────────────────────────────────────────────────────────
-export const getSubscriptions = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const getSubscriptions = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { plan, search, page = 1, limit = 20 } = req.query;
-    const filter: Record<string, any> = { role: "recruiter" };
-    if (plan && plan !== "all") filter.plan = plan;
-    if (search) filter.$or = [
-      { name: { $regex: search, $options: "i" } },
-      { email: { $regex: search, $options: "i" } },
-    ];
-    const users = await User.find(filter)
-      .select("-password")
-      .sort({ createdAt: -1 })
-      .skip((+page - 1) * +limit)
-      .limit(+limit);
-    const total = await User.countDocuments(filter);
-    res.json({ users, total, page: +page, pages: Math.ceil(total / +limit) });
+    const users = await User.find({ role: { $in: ["recruiter", "applicant"] } }).select("-password").sort({ createdAt: -1 });
+    res.json(users);
   } catch (err) { next(err); }
 };
 
@@ -276,3 +264,4 @@ export const seedPlanConfigs = async (): Promise<void> => {
     await ApplicantPlanConfig.findOneAndUpdate({ plan: d.plan }, { $setOnInsert: d }, { upsert: true });
   }
 };
+
