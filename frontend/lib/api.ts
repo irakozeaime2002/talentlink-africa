@@ -60,6 +60,7 @@ export const fetchPublicJob = (id: string) => api.get<Job>(`/jobs/public/${id}`)
 export const fetchCandidates = () => api.get<Candidate[]>("/candidates").then((r) => r.data);
 export const createCandidate = (data: Omit<Candidate, "_id">) => api.post<Candidate>("/candidates", data).then((r) => r.data);
 export const deleteCandidate = (id: string) => api.delete(`/candidates/${id}`).then((r) => r.data);
+export const bulkDeleteCandidates = (ids: string[]) => api.post("/candidates/bulk-delete", { ids }).then((r) => r.data);
 
 export const uploadCSV = (file: File, jobId?: string) => {
   const form = new FormData();

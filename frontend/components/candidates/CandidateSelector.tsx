@@ -40,7 +40,7 @@ export default function CandidateSelector({ candidates, selected, onChange }: Pr
             <div className="flex-1 min-w-0">
               <p className="font-medium text-sm truncate">{c.name}</p>
               <div className="flex gap-1 mt-1 flex-wrap">
-                {c.skills.slice(0, 3).map((s) => <Badge key={s} label={s} color="gray" />)}
+                {c.skills.slice(0, 3).map((s, i) => <Badge key={i} label={s.name} color="gray" />)}
               </div>
             </div>
             <Badge label={c.source} color={c.source === "profile" ? "blue" : c.source === "csv" ? "green" : "yellow"} />

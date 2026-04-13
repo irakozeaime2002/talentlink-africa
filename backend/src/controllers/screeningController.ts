@@ -22,12 +22,53 @@ export const runScreening = async (req: Request, res: Response, next: NextFuncti
     const job = await Job.findById(job_id);
     if (!job) { res.status(404).json({ error: "Job not found" }); return; }
 
+    // Check screening limits
+    const User = (await import("../models/User")).User;
+    const PlanConfig = (await import("../models/PlanConfig")).PlanConfig;
+    const recruiter = await User.findById((req as any).user?.id);
+    if (!recruiter) { res.status(404).json({ error: "User not found" }); return; }
+
+    // Get plan configuration from database (admin-configurable)
+    let planConfig = await PlanConfig.findOne({ plan: recruiter.plan });
+    
+    // If no config exists, create default
+    if (!planConfig) {
+      const defaults = {
+        free: { maxJobs: 3, maxScreeningsPerMonth: 5, csvUpload: false, resumeUpload: false },
+        pro: { maxJobs: 50, maxScreeningsPerMonth: 50, csvUpload: true, resumeUpload: true },
+        enterprise: { maxJobs: -1, maxScreeningsPerMonth: -1, csvUpload: true, resumeUpload: true },
+      };
+      planConfig = await PlanConfig.create({ plan: recruiter.plan, ...defaults[recruiter.plan] });
+    }
+
+    const limit = planConfig.maxScreeningsPerMonth;
+    const now = new Date();
+    const resetDate = recruiter.screeningsResetAt || new Date(0);
+
+    // Reset counter if a month has passed
+    if (now.getTime() - resetDate.getTime() > 30 * 24 * 60 * 60 * 1000) {
+      recruiter.screeningsUsed = 0;
+      recruiter.screeningsResetAt = now;
+      await recruiter.save();
+    }
+
+    // Check if limit reached (-1 means unlimited)
+    if (limit !== -1 && recruiter.screeningsUsed >= limit) {
+      res.status(403).json({
+        error: "Screening limit reached",
+        message: `You have reached your ${recruiter.plan} plan limit of ${limit} screenings per month. Upgrade your plan to continue.`,
+        plan: recruiter.plan,
+        used: recruiter.screeningsUsed,
+        limit,
+      });
+      return;
+    }
+
     const candidates = await Candidate.find({ _id: { $in: candidate_ids } });
     if (candidates.length === 0) { res.status(400).json({ error: "No candidates found" }); return; }
 
     // Fetch applications for this job to get cover letters, answers, and ALL documents
     const applications = await Application.find({ job_id });
-    const User = (await import("../models/User")).User;
     const emailToAppData: Record<string, {
       cover_letter: string;
       answers: { question: string; answer: string }[];
@@ -99,6 +140,11 @@ export const runScreening = async (req: Request, res: Response, next: NextFuncti
 
     const output = await screenCandidates(jobInput, candidateInputs, top_n);
     const result = await ScreeningResult.create({ job_id, ...output });
+
+    // Increment screening counter (permanent, cannot be reset by deleting results)
+    recruiter.screeningsUsed += 1;
+    await recruiter.save();
+
     res.status(201).json(result);
   } catch (err) {
     console.error("[Screening error]", (err as Error).message);

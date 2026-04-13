@@ -90,8 +90,8 @@ export default function ApplicationsPanel({ jobId }: { jobId: string }) {
                     <p className="text-xs text-gray-400 truncate">{email}</p>
                     {app.skills?.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-2">
-                        {app.skills.slice(0, 4).map((s) => (
-                          <span key={s} className="text-xs bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full">{s}</span>
+                        {app.skills.slice(0, 4).map((s, idx) => (
+                          <span key={idx} className="text-xs bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full">{typeof s === 'string' ? s : s.name}</span>
                         ))}
                         {app.skills.length > 4 && <span className="text-xs text-gray-400">+{app.skills.length - 4}</span>}
                       </div>

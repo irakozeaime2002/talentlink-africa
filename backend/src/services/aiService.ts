@@ -27,175 +27,113 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY as string);
  */
 
 const buildPrompt = (job: JobInput, candidates: CandidateInput[], topN: number): string => `
-You are a deterministic AI recruitment scoring engine. You must produce identical scores every time you receive the same input. There is no room for interpretation — follow every rule exactly.
+You are a deterministic AI recruitment scoring engine. You MUST evaluate ALL data sources for EACH candidate.
 
----
-
-## STEP 1 — UNDERSTAND THE JOB
-
+## JOB REQUIREMENTS
 ${JSON.stringify(job, null, 2)}
 
-Before scoring, extract:
-- required_skills: the non-negotiable technical skills
-- preferred_skills: bonus skills that improve fit
-- experience_level: the seniority bar (intern / junior / mid / senior / lead)
-- responsibilities: what the person will actually do day-to-day
+Evaluate against:
+- required_skills (MUST-HAVE)
+- preferred_skills (bonus)
+- experience_level (seniority)
+- responsibilities (duties)
+- required_documents (MUST submit): ${JSON.stringify(job.required_documents || [])}
+- application_questions (MUST answer): ${JSON.stringify(job.application_questions || [])}
 
----
-
-## STEP 2 — UNDERSTAND THE CANDIDATES
-
+## CANDIDATES
 ${JSON.stringify(candidates, null, 2)}
 
-For each candidate, read:
-- skills[]: their declared technical skills
-- experience[]: job titles, companies, durations, descriptions
-- projects[]: project names, descriptions, technologies used
-- education[]: degree, field, institution, year
-- certifications[]: any professional certifications
-- cv_text (if present): raw CV text — treat as additional evidence for ALL dimensions.
-- cover_letter (if present): assess communication quality, role alignment, and genuine interest.
-- application_answers (if present): CRITICAL — evaluate how specifically and thoughtfully each question was answered. Vague or empty answers are a strong negative signal.
-- attached_documents (if present): text extracted from uploaded documents labeled by filename. Read ALL carefully.
-  - Cross-check each document against the job's required_documents list: ${JSON.stringify(job.required_documents || [])}.
-  - For each required document: does the candidate's attached_documents contain it? Does the content match what is expected (e.g. a CV should list experience/skills, a certificate should show a qualification, a portfolio should show real work)?
-  - A required document that is MISSING → flag as a gap and penalize skills score by 10 points per missing document (capped at -30).
-  - A required document that is PRESENT but has LOW QUALITY content (e.g. a CV with no skills or experience, a blank portfolio) → flag as a gap and penalize by 5 points.
-  - A required document that is PRESENT and HIGH QUALITY → treat as a positive signal and use its content as evidence across all dimensions.
+For EACH candidate, evaluate ALL these data sources:
 
----
+1. PROFILE FIELDS FIRST: skills[], experience[], projects[], education[], certifications[] - these are pre-extracted from CSV
+2. BIO (supplementary): Contains raw CSV data with ALL fields - use this to find ADDITIONAL information not in structured fields
+3. CV_TEXT: scan for additional skills, experience, projects not in profile or bio
+4. COVER_LETTER: assess quality, interest, role alignment, additional info
+5. APPLICATION_ANSWERS: evaluate specificity and depth of EACH answer (vague = negative)
+6. ATTACHED_DOCUMENTS: validate ALL required documents present, correct type, quality
 
-## STEP 3 — SCORE EACH DIMENSION (0–100)
+IMPORTANT FOR CSV IMPORTS:
+- Check skills[], experience[], education[], projects[], certifications[] arrays FIRST - they contain extracted CSV data
+- If arrays are empty, look in bio field which has format "fieldName: value" on each line
+- The bio field contains ALL CSV columns as backup
+- Extract skills, experience, education, projects from structured arrays OR bio field
+- Be flexible - if structured fields have data, use them; if not, extract from bio
+- Cross-reference both sources for complete picture
 
-You MUST follow these rubrics exactly. Do not use your own judgment outside these rules.
+## SCORING
 
-### DIMENSION 1 — skills (contributes 40% to final score)
+**Skills (40%):**
+1. Check skills[] array first - contains extracted CSV skills
+2. If skills[] empty or incomplete, extract from bio field (line-by-line format)
+3. Also scan cv_text, cover_letter, application_answers for MORE skills
+4. Match required_skills (case-insensitive, partial match OK)
+5. base = (matched/total) × 100
+6. +5 per preferred_skill (cap +20)
+7. +2 per Advanced/Expert skill (cap +10)
+8. Apply document penalties
 
-Algorithm:
-1. Count how many of the job's required_skills appear in the candidate's skills list (case-insensitive, partial match allowed e.g. "React" matches "React.js").
-2. base = (matched_required / total_required) × 100
-3. For each preferred_skill matched, add 5 points (bonus capped at 20).
-4. If cv_text exists, scan it for additional skill mentions not in skills[] and count those too.
-5. If cover_letter or application_answers exist, scan them for skill mentions as additional evidence.
-6. Final skills score = MIN(base + bonus, 100)
+**Experience (30%):**
+Check experience[] array first, then bio field, then cv_text
+Seniority from experience[]: none(0y)|intern(<1y)|junior(1-2y)|mid(3-5y)|senior(6-9y)|lead(10+y)
+Matrix: none[30,10,0,0,0] intern[80,50,20,5,0] junior[70,85,55,25,10] mid[60,75,90,65,35] senior[50,65,80,95,75] lead[40,55,70,85,100]
+Domain: same(+0)|related(-10)|unrelated(-25)
+Extract years/duration from experience[].description or bio field
 
-Examples:
-- 0 of 4 required matched → 0 + bonus → skills = 0–20
-- 2 of 4 required matched → 50 + bonus → skills = 50–70
-- 4 of 4 required matched → 100 + bonus capped → skills = 100
+**Projects (20%):**
+Check projects[] array first, then bio field, then cv_text
+0=10|irrelevant=20|1=50|2=70|3+=85
++5 per project with 2+ required_skills (cap +15)
 
-### DIMENSION 2 — experience (contributes 30% to final score)
+**Education (10%):**
+Check education[] array first, then bio field, then cv_text
+none=25|unrelated=35|loosely=55|related=75|+certs=85|+multi=95
 
-Algorithm:
-1. Determine candidate's seniority from their experience entries (titles + durations):
-   - No experience = "none"
-   - < 1 year total = "intern"
-   - 1–2 years = "junior"
-   - 3–5 years = "mid"
-   - 6–9 years = "senior"
-   - 10+ years or "lead/head/director" title = "lead"
-2. Compare candidate seniority to job experience_level using this fixed matrix:
+**Documents (penalties on skills):**
+For EACH required document:
+- Missing: -10 (cap -30)
+- Wrong type: -8 (CV has experience/skills, Certificate has issuer/date, Diploma has degree/institution/date, Portfolio has projects/links, Cover Letter is letter format, Transcript has courses/grades)
+- Low quality: -5
+- High quality: mention in strengths
 
-   Candidate \ Job  | intern | junior | mid | senior | lead
-   none             |  30    |  10    |  0  |   0    |   0
-   intern           |  80    |  50    | 20  |   5    |   0
-   junior           |  70    |  85    | 55  |  25    |  10
-   mid              |  60    |  75    | 90  |  65    |  35
-   senior           |  50    |  65    | 80  |  95    |  75
-   lead             |  40    |  55    | 70  |  85    | 100
+## FORMULA
+match_score = (skills×0.4)+(experience×0.3)+(projects×0.2)+(education×0.1)
 
-3. Domain relevance adjustment:
-   - Experience is in the same technical domain as the job → +0 (no penalty)
-   - Experience is in a related domain (e.g. backend dev applying for fullstack) → -10
-   - Experience is in an unrelated domain → -25
-4. Final experience score = MAX(0, matrix_value + domain_adjustment)
+IMPORTANT: Return the EXACT breakdown scores. The server will recompute match_score using this formula.
+Example: skills=85, experience=70, projects=60, education=75
+match_score = (85×0.4)+(70×0.3)+(60×0.2)+(75×0.1) = 34+21+12+7.5 = 74.5
 
-### DIMENSION 3 — projects (contributes 20% to final score)
+Recommendation: 80-100=Strongly|60-79=Recommend|40-59=Consider|0-39=Do Not
 
-Algorithm:
-1. Count relevant projects: a project is relevant if its description or technologies overlap with required_skills or responsibilities.
-2. Apply this scale:
-   - 0 projects total → 10
-   - Projects exist but none are relevant → 20
-   - 1 relevant project → 50
-   - 2 relevant projects → 70
-   - 3+ relevant projects → 85
-3. Quality bonus: for each relevant project that uses 2+ required_skills as technologies → +5 (capped at +15)
-4. If cv_text or application_answers mention additional projects not in projects[], count those too.
-5. Final projects score = MIN(base + quality_bonus, 100)
+## OUTPUT
+Score ALL ${candidates.length}. Return top ${topN}.
 
-### DIMENSION 4 — education (contributes 10% to final score)
-
-Algorithm:
-1. Apply this fixed scale:
-   - No education data → 25
-   - Degree in unrelated field → 35
-   - Degree in loosely related field (e.g. business for a PM role) → 55
-   - Degree in directly related field (e.g. Computer Science for a software role) → 75
-   - Directly related degree + relevant certifications → 85
-   - Directly related degree + multiple relevant certifications → 95
-2. Do NOT penalize candidates for not having a degree if they have strong skills/experience.
-
----
-
-## STEP 4 — COMPUTE FINAL SCORE
-
-You MUST use this exact formula:
-match_score = (skills × 0.4) + (experience × 0.3) + (projects × 0.2) + (education × 0.1)
-Round to 1 decimal place.
-
-Derive recommendation strictly from match_score — no exceptions:
-- 80–100 → "Strongly Recommend"
-- 60–79  → "Recommend"
-- 40–59  → "Consider"
-- 0–39   → "Do Not Recommend"
-
----
-
-## STEP 5 — BUILD OUTPUT
-
-For each candidate:
-- strengths[]: 2–5 bullet points. Each MUST name a specific skill, job title, company, project, document, or notable answer from the data. No vague statements like "strong background".
-- gaps[]: list every required_skill not found in the candidate's profile AND every required document that is missing or low quality. If no gaps, return ["No significant gaps"].
-- reason: exactly 2–3 sentences. Sentence 1: overall fit summary with score. Sentence 2: strongest evidence (including document quality or answer quality if notable). Sentence 3: biggest gap or risk (missing documents, weak answers, or skill gaps).
-
----
-
-## FINAL RULES
-1. Score ALL ${candidates.length} candidates.
-2. Return ONLY the top ${topN} sorted by match_score descending.
-3. Never invent skills, titles, or projects not present in the data.
-4. Never give two candidates the same rank.
-5. Return ONLY valid JSON — no markdown, no code fences, no explanation outside the JSON.
-
-## OUTPUT FORMAT
 {
-  "job_summary": {
-    "role": "",
-    "key_requirements": [],
-    "must_have_skills": [],
-    "preferred_skills": []
-  },
-  "ranking": [
-    {
-      "rank": 1,
-      "candidate_id": "",
-      "name": "",
-      "match_score": 0,
-      "score_breakdown": {
-        "skills": 0,
-        "experience": 0,
-        "education": 0,
-        "projects": 0
-      },
-      "strengths": [],
-      "gaps": [],
-      "reason": "",
-      "recommendation": ""
-    }
-  ]
+  "job_summary": {"role":"${job.title}", "key_requirements":[], "must_have_skills":${JSON.stringify(job.required_skills)}, "preferred_skills":${JSON.stringify(job.preferred_skills)}},
+  "ranking": [{
+    "rank": 1,
+    "candidate_id": "",
+    "name": "",
+    "match_score": 0,
+    "score_breakdown": {"skills":0, "experience":0, "education":0, "projects":0},
+    "strengths": ["MUST name specific skills/companies/projects/documents from data"],
+    "gaps": ["List ALL missing required_skills AND missing/wrong/low-quality documents"],
+    "reason": "Sentence 1: fit+score. Sentence 2: best evidence (profile/CV/docs/answers). Sentence 3: biggest gap.",
+    "recommendation": ""
+  }]
 }
-`;
+
+CRITICAL:
+- CSV imports have data in BOTH structured arrays (skills[], experience[], education[], projects[], certifications[]) AND bio field
+- Check structured arrays FIRST - they contain pre-extracted CSV data
+- Use bio field as supplementary source if arrays are incomplete
+- Cross-reference all sources: structured fields + bio + cv_text + cover_letter + application_answers + attached_documents
+- Be flexible with field names in bio - extract meaning, not just exact matches
+- Validate ALL required documents
+- Assess ALL application answers
+- Never invent data - if no data exists, score low and mention in gaps
+- Never skip evaluation areas
+- Return ONLY JSON
+`;;
 
 // Free-tier fallback list — tried in order until one succeeds
 const MODELS = [
@@ -210,16 +148,21 @@ const parseOutput = (text: string, topN: number): ScreeningOutput => {
   const clean = text.trim().replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "").trim();
   const parsed = JSON.parse(clean) as ScreeningOutput;
   parsed.ranking = parsed.ranking
-    .map((c) => ({
-      ...c,
-      // Always recompute match_score from breakdown to guarantee formula consistency
-      match_score: Math.round(
-        ((c.score_breakdown.skills * 0.4) +
-         (c.score_breakdown.experience * 0.3) +
-         (c.score_breakdown.projects * 0.2) +
-         (c.score_breakdown.education * 0.1)) * 10
-      ) / 10,
-    }))
+    .map((c) => {
+      // Recompute match_score from breakdown to guarantee formula consistency
+      const computed = (
+        (c.score_breakdown.skills * 0.4) +
+        (c.score_breakdown.experience * 0.3) +
+        (c.score_breakdown.projects * 0.2) +
+        (c.score_breakdown.education * 0.1)
+      );
+      // Round to 1 decimal place
+      const rounded = Math.round(computed * 10) / 10;
+      return {
+        ...c,
+        match_score: rounded,
+      };
+    })
     .sort((a, b) => b.match_score - a.match_score)
     .slice(0, topN)
     .map((c, i) => ({ ...c, rank: i + 1 }));
@@ -250,10 +193,12 @@ export const screenCandidates = async (
       const is503 = err.message?.includes("503");
       const is429 = err.message?.includes("429");
       const is404 = err.message?.includes("404");
-      console.warn(`[AI] ${modelName} failed: ${is503 ? "503 Unavailable" : is429 ? "429 Quota" : is404 ? "404 Not Found" : err.message?.slice(0, 60)}`);
+      const isJsonError = err.message?.includes("JSON") || err.name === "SyntaxError";
+      const errorType = is503 ? "503 Unavailable" : is429 ? "429 Quota" : is404 ? "404 Not Found" : isJsonError ? "Invalid JSON" : err.message?.slice(0, 60);
+      console.warn(`[AI] ${modelName} failed: ${errorType}`);
       lastError = err;
-      // Only retry next model on 503/429/404 — not on JSON parse errors
-      if (!is503 && !is429 && !is404) break;
+      // Continue to next model on any error (503, 429, 404, JSON parse errors, etc.)
+      // Only stop if it's the last model
     }
   }
 

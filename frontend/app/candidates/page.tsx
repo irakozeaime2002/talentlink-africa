@@ -1,11 +1,11 @@
 "use client";
 import { useEffect, useState, useMemo } from "react";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
-import { loadCandidates, removeCandidate } from "../../store/slices/candidatesSlice";
+import { loadCandidates, removeCandidate, bulkRemoveCandidates } from "../../store/slices/candidatesSlice";
 import toast from "react-hot-toast";
 import {
   Trash2, Search, Briefcase, Mail, Users, FileSpreadsheet,
-  ChevronDown, MapPin, Award, FolderOpen, Filter,
+  ChevronDown, MapPin, Award, FolderOpen, Filter, CheckSquare, Square,
 } from "lucide-react";
 import { fetchMyJobsCandidates, fetchJobs } from "../../lib/api";
 import { Candidate, Job } from "../../types";
@@ -39,6 +39,7 @@ export default function CandidatesPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [jobFilter, setJobFilter] = useState("all");
   const [activeTab, setActiveTab] = useState<"applicants" | "imported">("applicants");
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (user?.role !== "recruiter") return;
@@ -50,9 +51,13 @@ export default function CandidatesPage() {
       .finally(() => setApplicantsLoading(false));
   }, [dispatch, user]);
 
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [activeTab]);
+
   const filteredApplicants = useMemo(() => applicants.filter((c) => {
     const q = search.toLowerCase();
-    const matchSearch = c.name.toLowerCase().includes(q) || c.email?.toLowerCase().includes(q) || c.skills.some((s) => s.toLowerCase().includes(q));
+    const matchSearch = c.name.toLowerCase().includes(q) || c.email?.toLowerCase().includes(q) || c.skills.some((s) => s.name.toLowerCase().includes(q));
     const matchJob = jobFilter === "all" || c.jobs_applied?.some((j) => j._id === jobFilter);
     const matchStatus = statusFilter === "all" || c.jobs_applied?.some((j) => j.status === statusFilter);
     return matchSearch && matchJob && matchStatus;
@@ -61,7 +66,7 @@ export default function CandidatesPage() {
   const filteredPool = useMemo(() => {
     const q = search.toLowerCase();
     return (poolCandidates as EnrichedCandidate[]).filter((c) => {
-      const matchSearch = c.name.toLowerCase().includes(q) || c.email?.toLowerCase().includes(q) || c.skills.some((s) => s.toLowerCase().includes(q));
+      const matchSearch = c.name.toLowerCase().includes(q) || c.email?.toLowerCase().includes(q) || c.skills.some((s) => s.name.toLowerCase().includes(q));
       const matchJob = jobFilter === "all" || c.jobs_applied?.some((j) => j._id === jobFilter);
       return matchSearch && matchJob;
     });
@@ -84,14 +89,38 @@ export default function CandidatesPage() {
     toast.success("Candidate removed");
   };
 
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    if (!confirm(`Delete ${selectedIds.length} selected candidate(s)?`)) return;
+    await dispatch(bulkRemoveCandidates(selectedIds));
+    toast.success(`${selectedIds.length} candidate(s) deleted`);
+    setSelectedIds([]);
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]);
+  };
+
+  const toggleSelectAll = () => {
+    const currentList = activeTab === "imported" ? filteredPool : [];
+    if (selectedIds.length === currentList.length && currentList.length > 0) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(currentList.map((c) => c._id));
+    }
+  };
+
   const CandidateCard = ({ c, showDelete }: { c: EnrichedCandidate; showDelete?: boolean }) => {
 
     const topJob = c.jobs_applied?.[0];
     const topStatus = (topJob?.status || "pending") as StatusFilter;
     const sc = STATUS_CONFIG[topStatus] || STATUS_CONFIG.pending;
+    const isSelected = selectedIds.includes(c._id);
 
     return (
-      <div className="glass-card p-5 flex flex-col gap-4 group relative overflow-hidden">
+      <div className={`glass-card p-5 flex flex-col gap-4 group relative overflow-hidden transition-all ${
+        isSelected ? "ring-2" : ""
+      }`} style={isSelected ? { "--tw-ring-color": "var(--accent)" } as any : {}}>
         {/* Subtle top accent line */}
         <div className="absolute top-0 left-0 right-0 h-0.5 rounded-t-2xl opacity-60"
           style={{ background: "linear-gradient(90deg, var(--accent), transparent)" }} />
@@ -99,6 +128,12 @@ export default function CandidatesPage() {
         {/* Header */}
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
+            {showDelete && (
+              <button onClick={() => toggleSelect(c._id)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition shrink-0">
+                {isSelected ? <CheckSquare size={18} style={{ color: "var(--accent)" }} /> : <Square size={18} />}
+              </button>
+            )}
             <div className="w-11 h-11 rounded-xl flex items-center justify-center text-white font-bold text-base shrink-0 shadow-md"
               style={{ background: "var(--accent)" }}>
               {c.name.charAt(0).toUpperCase()}
@@ -130,10 +165,10 @@ export default function CandidatesPage() {
         {/* Skills */}
         {c.skills.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
-            {c.skills.slice(0, 5).map((s) => (
-              <span key={s} className="text-xs px-2.5 py-1 rounded-full font-medium"
+            {c.skills.slice(0, 5).map((s, idx) => (
+              <span key={idx} className="text-xs px-2.5 py-1 rounded-full font-medium"
                 style={{ background: "var(--accent-light)", color: "var(--accent)" }}>
-                {s}
+                {s.name}
               </span>
             ))}
             {c.skills.length > 5 && (
@@ -147,7 +182,7 @@ export default function CandidatesPage() {
           {c.experience?.length > 0 && (
             <span className="flex items-center gap-1">
               <Briefcase size={11} />
-              {c.experience[0].title}{c.experience[0].company ? ` · ${c.experience[0].company}` : ""}
+              {c.experience[0].role}{c.experience[0].company ? ` · ${c.experience[0].company}` : ""}
             </span>
           )}
           {c.education?.length > 0 && (
@@ -257,6 +292,34 @@ export default function CandidatesPage() {
       {/* Filters */}
       <div className="glass-card p-4 flex flex-wrap gap-3 items-center">
         <Filter size={15} className="text-gray-400 shrink-0" />
+
+        {/* Bulk actions */}
+        {activeTab === "imported" && selectedIds.length > 0 && (
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border-2 shrink-0"
+            style={{ borderColor: "var(--accent)", background: "var(--accent-light)" }}>
+            <span className="text-sm font-semibold" style={{ color: "var(--accent)" }}>
+              {selectedIds.length} selected
+            </span>
+            <button onClick={handleBulkDelete}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-white transition hover:opacity-90"
+              style={{ background: "var(--accent)" }}>
+              <Trash2 size={12} /> Delete
+            </button>
+          </div>
+        )}
+
+        {/* Select all */}
+        {activeTab === "imported" && filteredPool.length > 0 && (
+          <button onClick={toggleSelectAll}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border dark:border-white/10 hover:border-gray-300 dark:hover:border-white/20 transition">
+            {selectedIds.length === filteredPool.length && filteredPool.length > 0 ? (
+              <CheckSquare size={14} style={{ color: "var(--accent)" }} />
+            ) : (
+              <Square size={14} className="text-gray-400" />
+            )}
+            {selectedIds.length === filteredPool.length && filteredPool.length > 0 ? "Deselect All" : "Select All"}
+          </button>
+        )}
 
         {/* Search */}
         <div className="relative flex-1 min-w-48">

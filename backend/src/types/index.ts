@@ -11,37 +11,76 @@ export interface JobInput {
 
 export interface CandidateInput {
   id?: string;
+  firstName?: string;
+  lastName?: string;
   name: string;
   email?: string;
-  skills: string[];
+  headline?: string;
+  bio?: string;
+  location?: string;
+  skills: SkillEntry[];
+  languages?: LanguageEntry[];
   education: EducationEntry[];
   experience: ExperienceEntry[];
   projects: ProjectEntry[];
-  certifications: string[];
+  certifications: CertificationEntry[];
+  availability?: AvailabilityEntry;
+  socialLinks?: { linkedin?: string; github?: string; portfolio?: string; [key: string]: string | undefined };
   cv_text?: string;
   cover_letter?: string;
   application_answers?: { question: string; answer: string }[];
   attached_documents?: string;
 }
 
+export interface SkillEntry {
+  name: string;
+  level?: "Beginner" | "Intermediate" | "Advanced" | "Expert";
+  yearsOfExperience?: number;
+}
+
+export interface LanguageEntry {
+  name: string;
+  proficiency?: "Basic" | "Conversational" | "Fluent" | "Native";
+}
+
 export interface EducationEntry {
-  degree: string;
-  field: string;
   institution: string;
-  year?: string;
+  degree: string;
+  fieldOfStudy?: string;
+  startYear?: number;
+  endYear?: number;
 }
 
 export interface ExperienceEntry {
-  title: string;
   company: string;
-  duration: string;
+  role: string;
+  startDate?: string;
+  endDate?: string;
   description?: string;
+  technologies?: string[];
+  isCurrent?: boolean;
 }
 
 export interface ProjectEntry {
   name: string;
   description: string;
   technologies?: string[];
+  role?: string;
+  link?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface CertificationEntry {
+  name: string;
+  issuer?: string;
+  issueDate?: string;
+}
+
+export interface AvailabilityEntry {
+  status?: "Available" | "Open to Opportunities" | "Not Available";
+  type?: "Full-time" | "Part-time" | "Contract";
+  startDate?: string;
 }
 
 export interface ScoreBreakdown {

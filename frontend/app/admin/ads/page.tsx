@@ -117,9 +117,13 @@ export default function AdminAdsPage() {
           </div>
           <div>
             <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Description *</label>
-            <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
+            <textarea value={form.description} onChange={(e) => {
+                setForm({ ...form, description: e.target.value });
+                e.target.style.height = 'auto';
+                e.target.style.height = e.target.scrollHeight + 'px';
+              }}
               rows={2} placeholder="Short compelling description..."
-              className="w-full border dark:border-white/10 rounded-xl px-3 py-2 text-sm bg-white dark:bg-white/5 dark:text-gray-200 focus:outline-none focus:ring-2 transition resize-none" />
+              className="w-full border dark:border-white/10 rounded-xl px-3 py-2 text-sm bg-white dark:bg-white/5 dark:text-gray-200 focus:outline-none focus:ring-2 transition resize-none overflow-hidden" />
           </div>
           <div className="flex gap-3 pt-2">
             <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 btn-glow text-white px-5 py-2 rounded-xl text-sm font-semibold disabled:opacity-50">

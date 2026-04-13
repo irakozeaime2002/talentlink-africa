@@ -51,7 +51,7 @@ export default function PublicHomePage() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
           {[
             { icon: Briefcase, title: "Post & Manage Jobs", desc: "Create listings with custom requirements, questions, deadlines, and salary in RWF." },
-            { icon: Brain, title: "AI Screening", desc: "Gemini AI ranks candidates by skills, experience, projects & education with full reasoning." },
+            { icon: Brain, title: "AI Screening", desc: "AI ranks candidates by skills, experience, projects & education with full reasoning." },
             { icon: Users, title: "Ranked Shortlists", desc: "Get Top 10 or 20 candidates with strengths, gaps, and hiring recommendations." },
           ].map(({ icon: Icon, title, desc }) => (
             <div key={title} className="glass-card p-7 text-left group">

@@ -19,13 +19,47 @@ export interface Job {
 
 export interface Candidate {
   _id: string;
+  firstName?: string;
+  lastName?: string;
   name: string;
   email?: string;
-  skills: string[];
-  education: { degree: string; field: string; institution: string; year?: string }[];
-  experience: { title: string; company: string; duration: string; description?: string }[];
-  projects: { name: string; description: string; technologies?: string[] }[];
-  certifications: string[];
+  headline?: string;
+  bio?: string;
+  location?: string;
+  skills: { name: string; level?: "Beginner" | "Intermediate" | "Advanced" | "Expert"; yearsOfExperience?: number }[];
+  languages?: { name: string; proficiency?: "Basic" | "Conversational" | "Fluent" | "Native" }[];
+  experience: {
+    company: string;
+    role: string;
+    startDate?: string;
+    endDate?: string;
+    description?: string;
+    technologies?: string[];
+    isCurrent?: boolean;
+  }[];
+  education: {
+    institution: string;
+    degree: string;
+    fieldOfStudy?: string;
+    startYear?: number;
+    endYear?: number;
+  }[];
+  certifications: { name: string; issuer?: string; issueDate?: string }[];
+  projects: {
+    name: string;
+    description: string;
+    technologies?: string[];
+    role?: string;
+    link?: string;
+    startDate?: string;
+    endDate?: string;
+  }[];
+  availability?: {
+    status?: "Available" | "Open to Opportunities" | "Not Available";
+    type?: "Full-time" | "Part-time" | "Contract";
+    startDate?: string;
+  };
+  socialLinks?: { linkedin?: string; github?: string; portfolio?: string };
   source: "profile" | "csv" | "resume";
   cv_filename?: string;
   cv_data?: string;
@@ -88,11 +122,11 @@ export interface Application {
   cover_letter: string;
   answers: { question: string; answer: string }[];
   status: "pending" | "reviewed" | "shortlisted" | "rejected";
-  skills: string[];
-  education: { degree: string; field: string; institution: string; year?: string }[];
-  experience: { title: string; company: string; duration: string; description?: string }[];
-  projects: { name: string; description: string; technologies?: string[] }[];
-  certifications: string[];
+  skills: { name: string; level?: "Beginner" | "Intermediate" | "Advanced" | "Expert"; yearsOfExperience?: number }[];
+  education: { institution: string; degree: string; fieldOfStudy?: string; startYear?: number; endYear?: number }[];
+  experience: { company: string; role: string; startDate?: string; endDate?: string; description?: string; technologies?: string[]; isCurrent?: boolean }[];
+  projects: { name: string; description: string; technologies?: string[]; role?: string; link?: string; startDate?: string; endDate?: string }[];
+  certifications: { name: string; issuer?: string; issueDate?: string }[];
   documents?: { name: string; filename: string; data?: string }[];
   createdAt: string;
 }

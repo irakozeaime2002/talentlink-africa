@@ -226,8 +226,10 @@ export default function ApplicationDetailPage() {
       {skills?.length > 0 && (
         <Section icon={<CheckCircle2 size={18} />} title="Skills" color="text-indigo-500">
           <div className="flex flex-wrap gap-2">
-            {skills.map((s) => (
-              <span key={s} className="text-sm bg-indigo-50 text-indigo-700 border border-indigo-100 px-3 py-1.5 rounded-full font-medium">{s}</span>
+            {skills.map((s, i) => (
+              <span key={i} className="text-sm bg-indigo-50 text-indigo-700 border border-indigo-100 px-3 py-1.5 rounded-full font-medium">
+                {s.name}{s.level && ` · ${s.level}`}{s.yearsOfExperience && ` · ${s.yearsOfExperience}y`}
+              </span>
             ))}
           </div>
         </Section>
@@ -241,12 +243,23 @@ export default function ApplicationDetailPage() {
               <div key={i} className="bg-gray-50 rounded-xl p-4 border border-gray-100">
                 <div className="flex items-start justify-between gap-2 mb-1">
                   <div>
-                    <p className="font-bold text-gray-900">{e.title}</p>
+                    <p className="font-bold text-gray-900">{e.role}</p>
                     <p className="text-sm text-indigo-600 font-medium">{e.company}</p>
                   </div>
-                  <span className="text-xs text-gray-400 bg-white border px-2.5 py-1 rounded-full shrink-0">{e.duration}</span>
+                  <span className="text-xs text-gray-400 bg-white border px-2.5 py-1 rounded-full shrink-0">
+                    {e.startDate && new Date(e.startDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                    {' - '}
+                    {e.isCurrent ? 'Present' : (e.endDate ? new Date(e.endDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'N/A')}
+                  </span>
                 </div>
                 {e.description && <p className="text-sm text-gray-500 mt-2 leading-relaxed">{e.description}</p>}
+                {e.technologies && e.technologies.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {e.technologies.map((t, idx) => (
+                      <span key={idx} className="text-xs bg-white border px-2.5 py-0.5 rounded-full text-gray-600">{t}</span>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -263,8 +276,11 @@ export default function ApplicationDetailPage() {
                   <GraduationCap size={18} className="text-emerald-600" />
                 </div>
                 <div>
-                  <p className="font-bold text-gray-900">{e.degree} in {e.field}</p>
-                  <p className="text-sm text-gray-500">{e.institution}{e.year ? ` · ${e.year}` : ""}</p>
+                  <p className="font-bold text-gray-900">{e.degree}{e.fieldOfStudy && ` in ${e.fieldOfStudy}`}</p>
+                  <p className="text-sm text-gray-500">
+                    {e.institution}
+                    {(e.startYear || e.endYear) && ` · ${e.startYear || ''}${e.startYear && e.endYear ? '-' : ''}${e.endYear || ''}`}
+                  </p>
                 </div>
               </div>
             ))}
@@ -278,12 +294,20 @@ export default function ApplicationDetailPage() {
           <div className="space-y-3">
             {projects.map((p, i) => (
               <div key={i} className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-                <p className="font-bold text-gray-900 mb-1">{p.name}</p>
+                <div className="flex items-start justify-between gap-2 mb-1">
+                  <p className="font-bold text-gray-900">{p.name}</p>
+                  {p.link && (
+                    <a href={p.link} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-600 hover:underline flex items-center gap-1 shrink-0">
+                      <ExternalLink size={11} /> View
+                    </a>
+                  )}
+                </div>
+                {p.role && <p className="text-xs text-gray-500 mb-1">Role: {p.role}</p>}
                 <p className="text-sm text-gray-500 leading-relaxed mb-2">{p.description}</p>
                 {p.technologies && p.technologies.length > 0 && (
                   <div className="flex flex-wrap gap-1.5">
-                    {(p.technologies as string[]).map((t) => (
-                      <span key={t} className="text-xs bg-white border px-2.5 py-0.5 rounded-full text-gray-600">{t}</span>
+                    {p.technologies.map((t, idx) => (
+                      <span key={idx} className="text-xs bg-white border px-2.5 py-0.5 rounded-full text-gray-600">{t}</span>
                     ))}
                   </div>
                 )}
@@ -296,11 +320,15 @@ export default function ApplicationDetailPage() {
       {/* Certifications */}
       {certifications?.length > 0 && (
         <Section icon={<Award size={18} />} title="Certifications" color="text-amber-500">
-          <div className="flex flex-wrap gap-2">
+          <div className="space-y-2">
             {certifications.map((c, i) => (
-              <span key={i} className="flex items-center gap-1.5 text-sm bg-amber-50 text-amber-700 border border-amber-100 px-3 py-1.5 rounded-full font-medium">
-                <Award size={13} /> {c}
-              </span>
+              <div key={i} className="flex items-center gap-2 bg-amber-50 border border-amber-100 px-3 py-2 rounded-xl">
+                <Award size={14} className="text-amber-600 shrink-0" />
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-amber-900">{c.name}</p>
+                  {c.issuer && <p className="text-xs text-amber-700">{c.issuer}{c.issueDate && ` · ${new Date(c.issueDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`}</p>}
+                </div>
+              </div>
             ))}
           </div>
         </Section>

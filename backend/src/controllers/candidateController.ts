@@ -39,6 +39,18 @@ export const deleteCandidate = async (req: Request, res: Response, next: NextFun
   } catch (err) { next(err); }
 };
 
+export const bulkDeleteCandidates = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { ids } = req.body;
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      res.status(400).json({ error: "No candidate IDs provided" });
+      return;
+    }
+    const result = await Candidate.deleteMany({ _id: { $in: ids }, recruiter_id: recruiterId(req) });
+    res.json({ message: `${result.deletedCount} candidate(s) deleted`, deletedCount: result.deletedCount });
+  } catch (err) { next(err); }
+};
+
 export const uploadCSV = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     if (!req.file) { res.status(400).json({ error: "No file uploaded" }); return; }

@@ -193,13 +193,24 @@ export const updateUserPlan = async (req: Request, res: Response, next: NextFunc
     if (![ "free", "pro", "enterprise"].includes(plan)) {
       res.status(400).json({ error: "Invalid plan" }); return;
     }
-    const user = await User.findByIdAndUpdate(
+    
+    // Get user to check role
+    const user = await User.findById(req.params.id);
+    if (!user) { res.status(404).json({ error: "User not found" }); return; }
+    
+    // Prevent setting applicants to enterprise plan
+    if (user.role === "applicant" && plan === "enterprise") {
+      res.status(400).json({ error: "Applicants can only have Free or Pro plans. Enterprise is for recruiters only." });
+      return;
+    }
+    
+    const updatedUser = await User.findByIdAndUpdate(
       req.params.id,
       { plan, planExpiresAt: planExpiresAt || null },
       { new: true }
     ).select("-password");
-    if (!user) { res.status(404).json({ error: "User not found" }); return; }
-    res.json(user);
+    
+    res.json(updatedUser);
   } catch (err) { next(err); }
 };
 

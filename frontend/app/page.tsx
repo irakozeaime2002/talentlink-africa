@@ -45,7 +45,7 @@ export default function DashboardPage() {
   const actions = [
     { href: "/jobs/new", icon: Plus, title: "Create New Job", desc: "Post a job with AI-powered screening" },
     { href: "/candidates", icon: Users, title: "Manage Candidates", desc: "View, import, or upload candidate profiles" },
-    { href: "/jobs", icon: Brain, title: "Run AI Screening", desc: "Select a job and trigger Gemini screening" },
+    { href: "/jobs", icon: Brain, title: "Run AI Screening", desc: "Select a job and trigger AI screening" },
   ];
 
   return (
@@ -58,7 +58,7 @@ export default function DashboardPage() {
           </h1>
           <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Here's what's happening with your recruitment today.</p>
         </div>
-        <Link href="/jobs/new" className="btn-glow px-5 py-2.5 rounded-xl text-sm font-bold text-white flex items-center gap-2 hidden sm:flex">
+        <Link href="/jobs/new" className="btn-glow px-5 py-2.5 rounded-xl text-sm font-bold text-white items-center gap-2 hidden sm:flex">
           <Plus size={16} /> Create Job
         </Link>
       </div>

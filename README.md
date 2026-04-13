@@ -20,9 +20,185 @@
 
 ---
 
-## Overview
+## Problem Statement
 
-TalentLink Africa helps African companies hire smarter and faster by automatically screening and ranking job applicants using Google Gemini AI. It supports both structured talent profiles (Umurava platform schema) and unstructured inputs (CSV uploads, PDF resumes). Humans remain in control of all final hiring decisions.
+Recruiters today face two major challenges:
+
+1. **High application volumes** that significantly increase time-to-hire
+2. **Difficulty objectively comparing candidates** across diverse profiles and formats
+
+**The Challenge:**
+
+How can AI be used to accurately, transparently, and efficiently screen and shortlist job applicants across both structured talent profiles and unstructured resumes while preserving human-led hiring decisions?
+
+**Our Solution:**
+
+TalentLink Africa uses Google Gemini AI to automatically screen and rank job applicants, supporting both:
+- **Structured talent profiles** (Umurava platform schema)
+- **Unstructured inputs** (CSV uploads, PDF resumes)
+
+Humans remain in control of all final hiring decisions.
+
+---
+
+## Product Scope & Usage Scenarios
+
+### Scenario 1: Screening Applicants from Umurava Platform
+
+**Input:**
+- Job details (role, requirements, skills, experience)
+- Structured talent profiles following Umurava schema
+
+**AI Responsibilities:**
+- Analyze all applicants against job criteria
+- Score and rank candidates using weighted dimensions
+- Generate a ranked shortlist (Top 10 or Top 20)
+- Provide clear reasoning for each shortlisted candidate
+
+**Constraints:**
+- Strictly follows Umurava Talent Profile Schema
+- AI output is fully explainable with strengths, gaps, and relevance
+
+### Scenario 2: Screening Applicants from External Job Boards
+
+**Input:**
+- Manually entered job details
+- Uploaded spreadsheet (CSV / Excel)
+- Resume links or PDF uploads
+
+**AI Responsibilities:**
+- Parse resumes and applicant data
+- Match applicants to job requirements
+- Rank and shortlist Top 10 or 20 candidates
+- Generate explainable reasoning per candidate
+
+---
+
+## Umurava Talent Profile Schema
+
+TalentLink Africa fully implements the Umurava standardized talent profile schema:
+
+### Core Profile Fields
+```typescript
+{
+  // Basic Information
+  firstName: string;
+  lastName: string;
+  name: string;              // Full name (firstName + lastName)
+  email: string;
+  headline: string;          // Professional tagline (e.g., "Backend Engineer – Node.js & AI Systems")
+  bio: string;               // Professional biography
+  location: string;          // Current city and country
+  
+  // Skills (40% weight in AI scoring)
+  skills: [
+    {
+      name: string;                                    // Skill name (e.g., "Node.js")
+      level: "Beginner" | "Intermediate" | "Advanced" | "Expert";
+      yearsOfExperience: number;                       // Years practicing this skill
+    }
+  ];
+  
+  // Languages
+  languages: [
+    {
+      name: string;                                    // Language name
+      proficiency: "Basic" | "Conversational" | "Fluent" | "Native";
+    }
+  ];
+  
+  // Work Experience (30% weight in AI scoring)
+  experience: [
+    {
+      company: string;
+      role: string;                                    // Job title
+      startDate: string;                               // ISO date or "YYYY-MM"
+      endDate: string;                                 // ISO date, "YYYY-MM", or "Present"
+      description: string;                             // Responsibilities and achievements
+      technologies: string[];                          // Tech stack used
+      isCurrent: boolean;                              // Currently working here
+    }
+  ];
+  
+  // Education (10% weight in AI scoring)
+  education: [
+    {
+      institution: string;                             // University/school name
+      degree: string;                                  // Degree type (e.g., "Bachelor's")
+      fieldOfStudy: string;                            // Major/field (e.g., "Computer Science")
+      startYear: number;
+      endYear: number;                                 // Or expected graduation year
+    }
+  ];
+  
+  // Professional Certifications
+  certifications: [
+    {
+      name: string;                                    // Certification name
+      issuer: string;                                  // Issuing organization
+      issueDate: string;                               // ISO date or "YYYY-MM"
+    }
+  ];
+  
+  // Portfolio Projects (20% weight in AI scoring)
+  projects: [
+    {
+      name: string;                                    // Project name
+      description: string;                             // What was built and impact
+      technologies: string[];                          // Tech stack
+      role: string;                                    // Your role in the project
+      link: string;                                    // GitHub, live demo, or portfolio URL
+      startDate: string;                               // ISO date or "YYYY-MM"
+      endDate: string;                                 // ISO date, "YYYY-MM", or empty if ongoing
+    }
+  ];
+  
+  // Availability
+  availability: {
+    status: "Available" | "Open to Opportunities" | "Not Available";
+    type: "Full-time" | "Part-time" | "Contract";
+    startDate: string;                                 // When available to start
+  };
+  
+  // Social & Professional Links
+  socialLinks: {
+    [platformName: string]: string;                    // Dynamic key-value pairs
+    // Examples: "LinkedIn", "GitHub", "Portfolio", "Twitter", etc.
+  };
+  
+  // Documents
+  cv_filename: string;                                 // Uploaded CV filename
+  cv_data: string;                                     // CV text content (parsed)
+  
+  // Metadata
+  source: "profile" | "csv" | "resume";               // How candidate was added
+  recruiter_id: ObjectId;                              // Who added this candidate
+  job_id: ObjectId;                                    // Associated job (if any)
+}
+```
+
+### Schema Compliance
+
+✅ **All fields are stored in MongoDB** using Mongoose schemas  
+✅ **Frontend forms** collect structured data matching the schema  
+✅ **AI screening** reads all schema fields for accurate matching  
+✅ **Seed data** (`/api/seed/candidates`) generates 10 dummy profiles following this schema  
+✅ **CSV/Resume uploads** are parsed and mapped to this schema  
+
+---
+
+## Functional Requirements
+
+The application provides a complete recruiter-facing interface that supports:
+
+✅ **Job Creation and Editing** — Full CRUD operations for job listings  
+✅ **Applicant Ingestion** — Structured profiles, CSV/XLSX uploads, PDF resume parsing  
+✅ **AI-Based Screening Trigger** — One-click screening with candidate selection  
+✅ **Ranked Shortlist Viewing** — Top 10/20 candidates with scores and rankings  
+✅ **AI-Generated Reasoning** — Detailed explanation per candidate (strengths, gaps, recommendation)  
+✅ **Application Management** — Status tracking (pending → reviewed → shortlisted → rejected)  
+✅ **Screening History** — View and manage past screening runs per job  
+✅ **Public Job Board** — Applicants can browse and apply without recruiter intervention  
 
 ---
 
@@ -52,6 +228,8 @@ TalentLink Africa helps African companies hire smarter and faster by automatical
 - **Explainability** — Every candidate gets strengths, gaps, a narrative reason, and a recommendation label
 - **Recommendations** — Strongly Recommend / Recommend / Consider / Do Not Recommend derived strictly from score ranges
 - **Document Quality Evaluation** — Uploaded documents are parsed and cross-checked against job requirements; missing or low-quality documents penalize the score
+- **Document Type Validation** — AI validates that uploaded document content matches the requested type (e.g., rejects cover letter when CV is required); wrong document type results in -8 point penalty
+- **Supported Document Types** — CV/Resume, Certificate, Diploma, Portfolio, Cover Letter, Transcript, and any custom document type with intelligent content validation
 - **Candidate Detail Modal** — Full AI report opens in a centered portal modal covering the full viewport
 
 ### AI Chat Assistant
@@ -240,13 +418,52 @@ job_recruiter/
 | 0–39 | Do Not Recommend |
 
 ### AI Output Per Candidate
-- `rank` — position in shortlist
-- `match_score` — weighted score 0–100 (recomputed server-side)
-- `score_breakdown` — individual scores per dimension
-- `strengths[]` — concrete positives referencing actual skills, titles, and project names
-- `gaps[]` — missing requirements, missing documents, or risks
-- `reason` — 2–3 sentence narrative
-- `recommendation` — label derived strictly from score range
+
+Each candidate in the shortlist receives:
+
+- **`rank`** — Position in shortlist (1 = best match)
+- **`match_score`** — Weighted score 0–100 (recomputed server-side for accuracy)
+- **`score_breakdown`** — Individual scores per dimension:
+  - `skills` (0–100)
+  - `experience` (0–100)
+  - `projects` (0–100)
+  - `education` (0–100)
+- **`strengths[]`** — Concrete positives referencing actual skills, job titles, companies, and project names
+- **`gaps[]`** — Missing required skills, missing documents, experience gaps, or other risks
+- **`reason`** — 2–3 sentence narrative explaining the match
+- **`recommendation`** — Label derived strictly from score range:
+  - **Strongly Recommend** (80–100)
+  - **Recommend** (60–79)
+  - **Consider** (40–59)
+  - **Do Not Recommend** (0–39)
+
+### Example AI Output
+
+```json
+{
+  "rank": 1,
+  "candidate_id": "507f1f77bcf86cd799439011",
+  "name": "John Doe",
+  "match_score": 87,
+  "score_breakdown": {
+    "skills": 92,
+    "experience": 85,
+    "projects": 88,
+    "education": 75
+  },
+  "strengths": [
+    "5 years of Node.js experience with Advanced proficiency matches the Senior Backend Engineer requirement perfectly",
+    "Led 3 production projects using TypeScript, MongoDB, and Express – exact tech stack for this role",
+    "Bachelor's in Computer Science from University of Rwanda with AWS Certified Developer certification"
+  ],
+  "gaps": [
+    "Missing preferred skill: Docker (mentioned in job description)",
+    "No evidence of Kubernetes experience listed in preferred skills"
+  ],
+  "reason": "John is an excellent match with 5 years of relevant backend experience and proven expertise in the exact tech stack. His portfolio demonstrates strong problem-solving skills through 3 production-grade projects. Minor gap in containerization tools but core competencies are solid.",
+  "recommendation": "Strongly Recommend"
+}
+```
 
 ### Prompt Engineering
 
@@ -264,7 +481,12 @@ Gemini follows strict algorithmic rubrics — not free-form judgment:
 - **Experience**: fixed seniority matrix (candidate level vs job level) + domain relevance adjustment
 - **Projects**: relevance count scale (0→10, 1→50, 2→70, 3+→85) + quality bonus per project
 - **Education**: fixed scale from "no data" (25) to "related degree + multiple certs" (95)
-- **Documents**: missing required document = −10 per doc; low-quality document = −5; high-quality = positive evidence
+- **Documents**: AI validates both presence AND content type matching:
+  - Missing required document = −10 points per document (capped at -30)
+  - Wrong document type uploaded (e.g., cover letter when CV required) = −8 points
+  - Low-quality content (correct type but incomplete) = −5 points
+  - High-quality matching document = positive evidence across all dimensions
+  - Supported types: CV/Resume, Certificate, Diploma, Portfolio, Cover Letter, Transcript, plus intelligent validation for any custom document type
 
 **STEP 4 — Score Computation**
 Gemini computes the weighted formula. The backend then **recomputes** the score independently from the breakdown to guarantee formula consistency regardless of any Gemini rounding.
@@ -402,35 +624,113 @@ NEXT_PUBLIC_API_URL=http://localhost:5000/api
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Frontend | Next.js 14, Tailwind CSS, Redux Toolkit |
-| Backend | Node.js, Express, TypeScript |
-| Database | MongoDB Atlas (Mongoose) |
-| AI | Google Gemini API (gemini-2.5-flash + fallback chain) |
-| Auth | JWT (bcryptjs + jsonwebtoken, 7-day expiry) |
-| Email | Resend (password reset) |
-| File Parsing | pdf-parse, xlsx |
-| Theming | CSS variables, React Context (dark mode + 6 accent colors) |
-| Deployment | Vercel (frontend), Render (backend) |
+| Layer | Technology | Hackathon Requirement |
+|---|---|---|
+| Language | **TypeScript** | ✅ Required |
+| Frontend | **Next.js 14** | ✅ Required |
+| State Management | **Redux Toolkit** | ✅ Required |
+| Styling | **Tailwind CSS** | ✅ Required |
+| Backend | **Node.js + Express** | ✅ Required |
+| Database | **MongoDB Atlas** | ✅ Required |
+| AI / LLM | **Google Gemini API** | ✅ Mandatory |
+| Auth | JWT (bcryptjs + jsonwebtoken) | ✅ Implemented |
+| Email | Resend (password reset) | ✅ Implemented |
+| File Parsing | pdf-parse, xlsx | ✅ Implemented |
+| Theming | CSS variables, React Context | ✅ Implemented |
+| Deployment | Vercel (frontend), Render (backend) | ✅ Live |
+
+### Gemini API Integration
+
+**Primary Model:** `gemini-2.5-flash`  
+**Fallback Chain:** `gemini-2.0-flash` → `gemini-2.0-flash-001` → `gemini-pro-latest`  
+**Temperature:** 0 (deterministic output)  
+**Prompt Engineering:** 5-step structured prompt with algorithmic scoring rubrics  
+**Output Format:** Structured JSON only (no markdown, no free-form text)  
+
+---
+
+## Team Composition
+
+This project was built by a team with the following roles:
+
+### 1. Front-End Engineer
+**Skills:** Advanced React/Next.js, Redux Toolkit, Tailwind CSS, Form handling, API integration  
+**Responsibilities:**
+- Recruiter-facing UI (job management, candidate pool, screening dashboard)
+- Applicant-facing UI (job board, application forms, profile management)
+- Data visualization (shortlists, score breakdowns, screening history)
+- Responsive design across mobile, tablet, and desktop
+- Dark mode and accent color theming
+
+### 2. Back-End Engineer
+**Skills:** Node.js with TypeScript, REST API design, MongoDB/Mongoose, JWT authentication  
+**Responsibilities:**
+- Business logic implementation (jobs, candidates, applications, screening)
+- Data ingestion pipelines (CSV parsing, PDF text extraction)
+- AI request orchestration (Gemini API integration)
+- Authentication and role-based access control
+- Error handling and API security
+
+### 3. AI Software Engineer
+**Skills:** LLM prompt engineering, Gemini API, Text analysis, AI explainability  
+**Responsibilities:**
+- Designing AI decision flow (5-step prompt structure)
+- Implementing weighted scoring model (Skills 40%, Experience 30%, Projects 20%, Education 10%)
+- Ensuring reliable and interpretable outputs (strengths, gaps, reasoning)
+- Server-side score recomputation for determinism
+- Multi-model fallback strategy
+- Documenting AI assumptions and limitations
 
 ---
 
 ## Assumptions & Limitations
 
+### AI & Screening
 - PDF resume parsing extracts raw text; Gemini handles semantic interpretation
-- CSV must have columns: `name`, `email`, `skills` (comma-separated), `experience`, `certifications`
 - AI screening is deterministic at temperature 0; scores are recomputed server-side after Gemini responds
 - Document quality evaluation is AI-driven — Gemini interprets document content based on extracted text
-- Resend free tier only sends to the verified account email; a custom domain is needed for production
-- Refresh tokens not implemented (JWT 7-day expiry only)
-- Applicants cannot see their AI scores — only application status is exposed to preserve hiring integrity
-- No resume file storage (files are stored as base64 in MongoDB; AWS S3 recommended for scale)
 - AI model availability depends on Gemini API quota; multi-model fallback handles temporary outages
+- Shortlist size is configurable (Top 10 or Top 20) but defaults to Top 20
+
+### Data Ingestion
+- CSV must have columns: `name`, `email`, `skills` (comma-separated), `experience`, `certifications`
+- Structured profiles from Umurava platform strictly follow the provided schema
+- Resume uploads support PDF format only (other formats can be added)
+
+### Authentication & Security
+- JWT tokens expire after 7 days (refresh tokens not implemented)
+- Password reset tokens expire after 1 hour
+- Resend free tier only sends to verified account email; custom domain needed for production
+
+### Privacy & Ethics
+- Applicants cannot see their AI scores — only application status is exposed to preserve hiring integrity
+- Humans remain in control of all final hiring decisions
+- AI provides recommendations, not automated rejections
+
+### Storage & Scale
+- Resume files stored as base64 in MongoDB; AWS S3 recommended for production scale
+- No file size limits enforced (should be added for production)
+- Database indexes not optimized for large-scale queries (10,000+ candidates)
+
+### Known Limitations
+- No real-time notifications (email notifications only for password reset)
+- No candidate communication features (messaging, interview scheduling)
+- No analytics dashboard for recruiter insights
+- No integration with external ATS (Applicant Tracking Systems)
 
 ---
 
 ## Deployment
+
+### Live Application
+
+✅ **Frontend:** https://linkafrica.vercel.app (Vercel)  
+✅ **Backend API:** https://talentlink-africa.onrender.com/api (Render)  
+✅ **Database:** MongoDB Atlas (cloud-hosted)  
+✅ **Environment Variables:** Securely configured in hosting dashboards  
+✅ **Error Handling:** Production-ready error responses  
+
+### Deployment Instructions
 
 ### Frontend (Vercel)
 ```bash
@@ -445,3 +745,59 @@ cd backend && npm run build
 # Build command: npm run build
 # Start command: node dist/index.js
 ```
+
+---
+
+## Hackathon Compliance Checklist
+
+### ✅ Mandatory Requirements
+- [x] **Gemini API** used as the underlying LLM
+- [x] **Prompt engineering** intentional and documented (5-step structured prompt)
+- [x] **AI outputs** clean, structured, and recruiter-friendly (JSON format)
+- [x] **TypeScript** used throughout (frontend + backend)
+- [x] **Next.js** for frontend
+- [x] **Redux Toolkit** for state management
+- [x] **Tailwind CSS** for styling
+- [x] **Node.js** for backend
+- [x] **MongoDB** for database
+- [x] **Deployed online** and accessible (Vercel + Render)
+
+### ✅ Functional Requirements
+- [x] Job creation and editing
+- [x] Applicant ingestion (profiles + uploads)
+- [x] AI-based screening trigger
+- [x] Ranked shortlist viewing (Top 10/20)
+- [x] AI-generated reasoning per candidate
+- [x] Application status management
+
+### ✅ AI Capabilities
+- [x] Multi-candidate evaluation in single prompt
+- [x] Weighted scoring (Skills 40%, Experience 30%, Projects 20%, Education 10%)
+- [x] Natural-language explanation per candidate
+- [x] Explainable AI (strengths, gaps, reasoning)
+- [x] Deterministic output (temperature 0, server-side recomputation)
+
+### ✅ Scenario Support
+- [x] **Scenario 1:** Screening from Umurava Platform (structured profiles)
+- [x] **Scenario 2:** Screening from External Job Boards (CSV/PDF uploads)
+- [x] Umurava Talent Profile Schema compliance
+- [x] Resume parsing and data ingestion
+
+### ✅ Documentation
+- [x] Clean, structured repository
+- [x] Comprehensive README.md
+- [x] Architecture diagram
+- [x] Setup instructions
+- [x] Environment variables documented
+- [x] AI decision flow explained
+- [x] Assumptions and limitations listed
+
+### ✅ Code Quality
+- [x] TypeScript throughout
+- [x] Modular architecture (controllers, services, routes)
+- [x] Error handling implemented
+- [x] API security (JWT authentication, role-based access)
+- [x] Clean code structure
+
+---
+

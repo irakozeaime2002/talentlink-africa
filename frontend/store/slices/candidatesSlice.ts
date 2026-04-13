@@ -16,6 +16,10 @@ export const removeCandidate = createAsyncThunk("candidates/remove", async (id: 
   await api.deleteCandidate(id);
   return id;
 });
+export const bulkRemoveCandidates = createAsyncThunk("candidates/bulkRemove", async (ids: string[]) => {
+  await api.bulkDeleteCandidates(ids);
+  return ids;
+});
 export const importCSV = createAsyncThunk("candidates/csv", ({ file, jobId }: { file: File; jobId?: string }) => api.uploadCSV(file, jobId));
 export const importResumes = createAsyncThunk("candidates/resumes", ({ files, jobId }: { files: File[]; jobId?: string }) => api.uploadResumes(files, jobId));
 
@@ -32,6 +36,7 @@ const candidatesSlice = createSlice({
       .addCase(loadCandidates.rejected, (s, a) => { s.loading = false; s.error = a.error.message || "Failed to load candidates"; })
       .addCase(addCandidate.fulfilled, (s, a) => { s.items.unshift(a.payload); })
       .addCase(removeCandidate.fulfilled, (s, a) => { s.items = s.items.filter((c) => c._id !== a.payload); })
+      .addCase(bulkRemoveCandidates.fulfilled, (s, a) => { s.items = s.items.filter((c) => !a.payload.includes(c._id)); })
       .addCase(importCSV.fulfilled, (s, a) => { s.items.unshift(...a.payload.candidates); })
       .addCase(importResumes.fulfilled, (s, a) => { s.items.unshift(...a.payload.candidates); });
   },

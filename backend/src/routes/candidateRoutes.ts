@@ -4,6 +4,7 @@ import {
   getCandidates,
   getCandidate,
   deleteCandidate,
+  bulkDeleteCandidates,
   uploadCSV,
   uploadResumes,
 } from "../controllers/candidateController";
@@ -19,6 +20,7 @@ router.post("/", createCandidate);
 router.get("/", getCandidates);
 router.get("/:id", getCandidate);
 router.delete("/:id", deleteCandidate);
+router.post("/bulk-delete", bulkDeleteCandidates);
 router.post("/upload/csv", requireCSVUpload, upload.single("file"), uploadCSV);
 router.post("/upload/resumes", requireResumeUpload, upload.array("files", 50), uploadResumes);
 
