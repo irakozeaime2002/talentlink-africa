@@ -63,7 +63,7 @@ export const parseCSV = (buffer: Buffer): CandidateInput[] => {
         csvLines.push(`${key}: ${value}`);
       }
     });
-    const csvText = csvLines.join("\n");
+    const csvText = csvLines.join("\n").slice(0, 2000); // Limit to 2000 chars to avoid huge prompts
 
     // Try to extract skills from common field names
     const skillFields = ['skills', 'Skills', 'SKILLS', 'technologies', 'Technologies', 'tech_stack', 'expertise', 'Expertise'];

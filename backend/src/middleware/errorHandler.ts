@@ -2,6 +2,9 @@ import { Request, Response, NextFunction } from "express";
 
 export const errorHandler = (err: any, _req: Request, res: Response, _next: NextFunction): void => {
   console.error("[Error]", err.message);
+  if (process.env.NODE_ENV !== "production") {
+    console.error("[Error Stack]", err.stack);
+  }
 
   // Mongoose validation error
   if (err.name === "ValidationError") {
@@ -42,8 +45,14 @@ export const errorHandler = (err: any, _req: Request, res: Response, _next: Next
   }
 
   // JSON parse error from Gemini response
-  if (err.message === "Gemini returned invalid JSON") {
+  if (err.message?.includes("JSON") || err.name === "SyntaxError") {
     res.status(500).json({ error: "AI returned an unexpected response. Please try again." });
+    return;
+  }
+
+  // All Gemini models unavailable
+  if (err.message?.includes("All Gemini models unavailable")) {
+    res.status(503).json({ error: "AI service is temporarily unavailable. Please try again in a few minutes." });
     return;
   }
 

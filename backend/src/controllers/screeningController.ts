@@ -14,6 +14,8 @@ export const runScreening = async (req: Request, res: Response, next: NextFuncti
       top_n?: number;
     };
 
+    console.log(`[Screening] Starting for job ${job_id} with ${candidate_ids.length} candidates`);
+
     if (!job_id || !Array.isArray(candidate_ids) || candidate_ids.length === 0) {
       res.status(400).json({ error: "job_id and candidate_ids are required" });
       return;
@@ -22,11 +24,15 @@ export const runScreening = async (req: Request, res: Response, next: NextFuncti
     const job = await Job.findById(job_id);
     if (!job) { res.status(404).json({ error: "Job not found" }); return; }
 
+    console.log(`[Screening] Job found: ${job.title}`);
+
     // Check screening limits
     const User = (await import("../models/User")).User;
     const PlanConfig = (await import("../models/PlanConfig")).PlanConfig;
     const recruiter = await User.findById((req as any).user?.id);
     if (!recruiter) { res.status(404).json({ error: "User not found" }); return; }
+
+    console.log(`[Screening] Recruiter: ${recruiter.email}, Plan: ${recruiter.plan}`);
 
     // Get plan configuration from database (admin-configurable)
     let planConfig = await PlanConfig.findOne({ plan: recruiter.plan });
@@ -52,6 +58,8 @@ export const runScreening = async (req: Request, res: Response, next: NextFuncti
       await recruiter.save();
     }
 
+    console.log(`[Screening] Usage: ${recruiter.screeningsUsed}/${limit}`);
+
     // Check if limit reached (-1 means unlimited)
     if (limit !== -1 && recruiter.screeningsUsed >= limit) {
       res.status(403).json({
@@ -67,8 +75,12 @@ export const runScreening = async (req: Request, res: Response, next: NextFuncti
     const candidates = await Candidate.find({ _id: { $in: candidate_ids } });
     if (candidates.length === 0) { res.status(400).json({ error: "No candidates found" }); return; }
 
+    console.log(`[Screening] Found ${candidates.length} candidates`);
+
     // Fetch applications for this job to get cover letters, answers, and ALL documents
     const applications = await Application.find({ job_id });
+    console.log(`[Screening] Found ${applications.length} applications`);
+
     const emailToAppData: Record<string, {
       cover_letter: string;
       answers: { question: string; answer: string }[];
@@ -97,6 +109,8 @@ export const runScreening = async (req: Request, res: Response, next: NextFuncti
       };
     }
 
+    console.log(`[Screening] Prepared application data for ${Object.keys(emailToAppData).length} applicants`);
+
     const jobInput: JobInput = {
       title: job.title,
       description: job.description,
@@ -122,7 +136,7 @@ export const runScreening = async (req: Request, res: Response, next: NextFuncti
         `[Document: ${d.name}]\n${d.text}`
       ).join("\n\n") || "";
 
-      return {
+      const input = {
         id: c._id.toString(),
         name: c.name,
         email: c.email,
@@ -131,23 +145,36 @@ export const runScreening = async (req: Request, res: Response, next: NextFuncti
         experience: c.experience,
         projects: c.projects,
         certifications: c.certifications,
+        bio: c.bio?.slice(0, 1000), // Limit bio to 1000 chars
         ...(cvText ? { cv_text: cvText } : {}),
         ...(docTexts ? { attached_documents: docTexts } : {}),
         ...(appData?.cover_letter ? { cover_letter: appData.cover_letter } : {}),
         ...(appData?.answers?.length ? { application_answers: appData.answers } : {}),
       };
+      
+      console.log(`[Screening] Candidate ${c.name}: skills=${c.skills.length}, exp=${c.experience.length}, edu=${c.education.length}, bio=${c.bio?.length || 0}`);
+      
+      return input;
     });
 
+    console.log(`[Screening] Prepared ${candidateInputs.length} candidate inputs, calling AI...`);
+
     const output = await screenCandidates(jobInput, candidateInputs, top_n);
+    
+    console.log(`[Screening] AI returned ${output.ranking.length} ranked candidates`);
+
     const result = await ScreeningResult.create({ job_id, ...output });
 
     // Increment screening counter (permanent, cannot be reset by deleting results)
     recruiter.screeningsUsed += 1;
     await recruiter.save();
 
+    console.log(`[Screening] Success! Result ID: ${result._id}`);
+
     res.status(201).json(result);
   } catch (err) {
     console.error("[Screening error]", (err as Error).message);
+    console.error("[Screening error stack]", (err as Error).stack);
     next(err);
   }
 };

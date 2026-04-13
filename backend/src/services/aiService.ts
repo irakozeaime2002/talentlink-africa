@@ -135,13 +135,13 @@ CRITICAL:
 - Return ONLY JSON
 `;;
 
-// Free-tier fallback list — tried in order until one succeeds
+// Available models from API (verified via listModels)
 const MODELS = [
-  "gemini-2.5-flash",
   "gemini-flash-latest",
-  "gemini-2.0-flash",
-  "gemini-2.0-flash-001",
   "gemini-pro-latest",
+  "gemini-3-flash-preview",
+  "gemini-2.0-flash-lite",
+  "gemini-2.5-flash-lite",
 ];
 
 const parseOutput = (text: string, topN: number): ScreeningOutput => {
@@ -175,32 +175,28 @@ export const screenCandidates = async (
   topN = 20
 ): Promise<ScreeningOutput> => {
   const prompt = buildPrompt(job, candidates, topN);
+  console.log(`[AI] Prompt: ${prompt.length} chars, ${candidates.length} candidates`);
+  
   let lastError: Error = new Error("No models available");
 
   for (const modelName of MODELS) {
     try {
-      console.log(`[AI] Trying model: ${modelName}`);
-      const model = genAI.getGenerativeModel({
+      console.log(`[AI] Trying: ${modelName}`);
+      const model = genAI.getGenerativeModel({ 
         model: modelName,
         generationConfig: { temperature: 0 },
       });
       const result = await model.generateContent(prompt);
       const text = result.response.text();
+      console.log(`[AI] Response received: ${text.length} chars`);
       const output = parseOutput(text, topN);
-      console.log(`[AI] Success with ${modelName}, ranked ${output.ranking.length} candidates`);
+      console.log(`[AI] ✓ Success with ${modelName}: ${output.ranking.length} candidates ranked`);
       return output;
     } catch (err: any) {
-      const is503 = err.message?.includes("503");
-      const is429 = err.message?.includes("429");
-      const is404 = err.message?.includes("404");
-      const isJsonError = err.message?.includes("JSON") || err.name === "SyntaxError";
-      const errorType = is503 ? "503 Unavailable" : is429 ? "429 Quota" : is404 ? "404 Not Found" : isJsonError ? "Invalid JSON" : err.message?.slice(0, 60);
-      console.warn(`[AI] ${modelName} failed: ${errorType}`);
+      console.warn(`[AI] ✗ ${modelName} failed: ${err.message?.slice(0, 150)}`);
       lastError = err;
-      // Continue to next model on any error (503, 429, 404, JSON parse errors, etc.)
-      // Only stop if it's the last model
     }
   }
 
-  throw new Error(`All Gemini models unavailable. Last error: ${lastError.message?.slice(0, 120)}`);
+  throw new Error(`All models failed. Last: ${lastError.message?.slice(0, 150)}`);
 };

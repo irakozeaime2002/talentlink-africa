@@ -29,8 +29,8 @@ export default function DashboardPage() {
     }
   }, [dispatch, user, router]);
 
-  // Landing page
-  if (!user) return null;
+  // Prevent hydration mismatch by not rendering until mounted
+  if (!mounted || !user) return null;
 
   const safeJobs = Array.isArray(jobs) ? jobs : [];
   const openJobs = safeJobs.filter((j) => j.status === "open");
@@ -49,7 +49,7 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className={`space-y-8 transition-all duration-500 ${mounted ? "animate-slide-up" : "opacity-0"}`}>
+    <div className="space-y-8">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
