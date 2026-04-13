@@ -1,11 +1,12 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { fetchPublicJob, fetchMyApplications } from "../../../lib/api";
+import { fetchPublicJob, fetchJob, fetchMyApplications } from "../../../lib/api";
 import { Job } from "../../../types";
 import { useAppSelector } from "../../../store/hooks";
 import { MapPin, Briefcase, Clock, CheckCircle, ArrowLeft, ChevronRight, DollarSign, Building2, ListChecks, Star, Paperclip, Share, Copy, Check } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const skillColor = (s: string) => {
   const map: Record<string, string> = {
@@ -21,6 +22,7 @@ const skillColor = (s: string) => {
 export default function PublicJobDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAppSelector((s) => s.auth);
+  const router = useRouter();
   const [job, setJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
   const [alreadyApplied, setAlreadyApplied] = useState(false);
@@ -39,7 +41,8 @@ export default function PublicJobDetailPage() {
   };
 
   useEffect(() => {
-    fetchPublicJob(id).then((j) => { setJob(j); setLoading(false); });
+    const fetcher = user?.role === "admin" ? fetchJob(id) : fetchPublicJob(id);
+    fetcher.then((j) => { setJob(j); setLoading(false); });
     if (user?.role === "applicant") {
       fetchMyApplications().then((apps) => {
         setAlreadyApplied(apps.some((a) => {
@@ -64,9 +67,9 @@ export default function PublicJobDetailPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-5">
-      <Link href="/board" className="inline-flex items-center gap-1.5 text-sm font-medium hover:opacity-80 transition" style={{ color: "var(--accent)" }}>
+      <button onClick={() => router.back()} className="inline-flex items-center gap-1.5 text-sm font-medium hover:opacity-80 transition" style={{ color: "var(--accent)" }}>
         <ArrowLeft size={14} /> Back to Jobs
-      </Link>
+      </button>
 
       {/* Hero card */}
       <div className="rounded-3xl overflow-hidden shadow-xl">
