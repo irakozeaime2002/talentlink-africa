@@ -23,7 +23,9 @@ export const removeJob = createAsyncThunk("jobs/remove", async (id: string) => {
 const jobsSlice = createSlice({
   name: "jobs",
   initialState,
-  reducers: {},
+  reducers: {
+    reset: () => initialState,
+  },
   extraReducers: (builder) => {
     builder
       .addCase(loadJobs.pending, (s) => { s.loading = true; s.error = null; })
@@ -38,4 +40,5 @@ const jobsSlice = createSlice({
   },
 });
 
+export const { reset: resetJobs } = jobsSlice.actions;
 export default jobsSlice.reducer;

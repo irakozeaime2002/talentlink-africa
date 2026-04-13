@@ -227,7 +227,7 @@ export default function JobDetailPage() {
             </div>
             <div>
               <p className="font-bold text-white">{applications.length} applicant{applications.length !== 1 ? "s" : ""} ready to screen</p>
-              <p className="text-white/70 text-xs mt-0.5">Run Gemini AI to rank and shortlist the best candidates</p>
+              <p className="text-white/70 text-xs mt-0.5">Run AI screening to rank and shortlist the best candidates</p>
             </div>
           </div>
           <button
@@ -314,7 +314,7 @@ export default function JobDetailPage() {
               className="flex items-center gap-2 btn-glow text-white px-6 py-2.5 rounded-xl text-sm font-bold disabled:opacity-50 transition"
             >
               <Zap size={16} />
-              {screeningLoading ? "Screening with Gemini AI…" : `Run AI Screening (${selectedIds.length} selected)`}
+              {screeningLoading ? "AI is screening…" : `Run AI Screening (${selectedIds.length} selected)`}
             </button>
           </div>
         </div>

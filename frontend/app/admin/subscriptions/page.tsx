@@ -49,14 +49,15 @@ export default function AdminSubscriptionsPage() {
 
   const startEdit = (sub: Sub) => {
     setEditId(sub._id);
-    setEditPlan(sub.plan || "free");
-    setEditExpiry(sub.planExpiresAt ? sub.planExpiresAt.slice(0, 10) : "");
+    const plan = sub.plan || "free";
+    setEditPlan(plan);
+    setEditExpiry(plan === "free" ? "" : (sub.planExpiresAt ? sub.planExpiresAt.slice(0, 10) : ""));
   };
 
   const handleSave = async (id: string) => {
     setSaving(true);
     try {
-      await adminUpdateUserPlan(id, editPlan, editExpiry || undefined);
+      await adminUpdateUserPlan(id, editPlan, editPlan === "free" ? undefined : editExpiry || undefined);
       toast.success("Plan updated and saved to database!");
       setEditId(null);
       load();
@@ -147,7 +148,7 @@ export default function AdminSubscriptionsPage() {
                 <td className="px-4 py-3 text-xs text-gray-500 capitalize">{sub.role}</td>
                 <td className="px-4 py-3">
                   {editId === sub._id ? (
-                    <select value={editPlan} onChange={(e) => setEditPlan(e.target.value)}
+                    <select value={editPlan} onChange={(e) => { setEditPlan(e.target.value); if (e.target.value === "free") setEditExpiry(""); }}
                       className="border dark:border-white/10 rounded-lg px-2 py-1 text-xs bg-white dark:bg-white/5 dark:text-gray-200 focus:outline-none">
                       <option value="free">Free</option>
                       <option value="pro">Pro</option>
@@ -161,8 +162,12 @@ export default function AdminSubscriptionsPage() {
                 </td>
                 <td className="px-4 py-3">
                   {editId === sub._id ? (
-                    <input type="date" value={editExpiry} onChange={(e) => setEditExpiry(e.target.value)}
-                      className="border dark:border-white/10 rounded-lg px-2 py-1 text-xs bg-white dark:bg-white/5 dark:text-gray-200 focus:outline-none" />
+                    editPlan === "free" ? (
+                      <span className="text-xs text-gray-400 italic">No expiry</span>
+                    ) : (
+                      <input type="date" value={editExpiry} onChange={(e) => setEditExpiry(e.target.value)}
+                        className="border dark:border-white/10 rounded-lg px-2 py-1 text-xs bg-white dark:bg-white/5 dark:text-gray-200 focus:outline-none" />
+                    )
                   ) : (
                     <span className="text-xs text-gray-400">
                       {sub.planExpiresAt ? new Date(sub.planExpiresAt).toLocaleDateString() : "—"}

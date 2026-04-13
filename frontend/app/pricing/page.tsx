@@ -2,9 +2,12 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { Check, X, Building, User, Zap, Rocket, Star } from "lucide-react";
-import { useAppSelector } from "../../store/hooks";
+import { useAppSelector, useAppDispatch } from "../../store/hooks";
 import { useRouter } from "next/navigation";
-import { fetchPublicPlanConfigs, fetchPublicApplicantPlanConfigs } from "../../lib/api";
+import { fetchPublicPlanConfigs, fetchPublicApplicantPlanConfigs, upgradePlan } from "../../lib/api";
+import { upgradePlan as upgradePlanAction } from "../../store/slices/authSlice";
+import Cookies from "js-cookie";
+import toast from "react-hot-toast";
 
 interface RecruiterConfig { plan: string; maxJobs: number; maxScreeningsPerMonth: number; csvUpload: boolean; resumeUpload: boolean; }
 interface ApplicantConfig { plan: string; maxApplications: number; maxCVUploads: number; profileHighlight: boolean; }
@@ -39,12 +42,14 @@ const APPLICANT_PLANS = [
   { key: "pro",  icon: Star, name: "Pro",  monthly: 5000, yearly: 40000, desc: "For serious job seekers who want more", highlight: true  },
 ];
 
-function PlanCard({ plan, price, period, currentPlan, onUpgrade, features, disabled }: {
+function PlanCard({ plan, price, period, currentPlan, onUpgrade, onDowngrade, downgrading, features, disabled }: {
   plan: typeof RECRUITER_PLANS[0];
   price: number;
   period: string;
   currentPlan: string;
   onUpgrade: () => void;
+  onDowngrade: () => void;
+  downgrading: boolean;
   features: string[];
   disabled: string[];
 }) {
@@ -92,7 +97,7 @@ function PlanCard({ plan, price, period, currentPlan, onUpgrade, features, disab
         isCurrentPlan
           ? <div className="w-full text-center py-3 rounded-xl text-sm font-semibold glass-card text-gray-400 cursor-default">✓ Current Plan</div>
           : isFree
-            ? <button onClick={onUpgrade} className="w-full py-3 rounded-xl font-semibold text-sm glass-card hover:opacity-80 text-gray-500 transition">Downgrade</button>
+            ? <button onClick={onDowngrade} disabled={downgrading} className="w-full py-3 rounded-xl font-semibold text-sm glass-card hover:opacity-80 text-gray-500 transition disabled:opacity-50">{downgrading ? "Downgrading…" : "Downgrade to Free"}</button>
             : <button onClick={onUpgrade} className={`w-full py-3 rounded-xl font-semibold text-sm transition ${plan.highlight ? "btn-glow text-white" : "glass-card hover:opacity-80 text-gray-700 dark:text-gray-300"}`}>Upgrade Now</button>
       ) : (
         isFree
@@ -107,10 +112,12 @@ function PlanCard({ plan, price, period, currentPlan, onUpgrade, features, disab
 
 export default function PricingPage() {
   const { user } = useAppSelector((s) => s.auth);
+  const dispatch = useAppDispatch();
   const router = useRouter();
   const [yearly, setYearly] = useState(false);
   const [rConfigs, setRConfigs] = useState<Record<string, RecruiterConfig>>({});
   const [aConfigs, setAConfigs] = useState<Record<string, ApplicantConfig>>({});
+  const [downgrading, setDowngrading] = useState(false);
 
   useEffect(() => {
     fetchPublicPlanConfigs()
@@ -129,6 +136,19 @@ export default function PricingPage() {
 
   const handleUpgrade = (planKey: string) => {
     router.push(`/upgrade?plan=${planKey}`);
+  };
+
+  const handleDowngrade = async () => {
+    if (!confirm("Downgrade to Free? You will lose access to paid features immediately.")) return;
+    setDowngrading(true);
+    try {
+      await dispatch(upgradePlanAction({ plan: "free", billing: "monthly" })).unwrap();
+      toast.success("Downgraded to Free plan.");
+    } catch {
+      toast.error("Downgrade failed. Please try again.");
+    } finally {
+      setDowngrading(false);
+    }
   };
 
   return (
@@ -176,6 +196,8 @@ export default function PricingPage() {
                   features={features}
                   disabled={disabled}
                   onUpgrade={() => handleUpgrade(plan.key === "pro" ? "recruiter_pro" : "recruiter_enterprise")}
+                  onDowngrade={handleDowngrade}
+                  downgrading={downgrading}
                 />
               );
             })}
@@ -203,6 +225,8 @@ export default function PricingPage() {
                   features={features}
                   disabled={disabled}
                   onUpgrade={() => handleUpgrade("applicant_pro")}
+                  onDowngrade={handleDowngrade}
+                  downgrading={downgrading}
                 />
               );
             })}

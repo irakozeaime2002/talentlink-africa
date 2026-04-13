@@ -64,7 +64,7 @@ export default function AboutPage() {
               We're on a mission to eliminate the inefficiencies of traditional recruitment in Africa. High application volumes, subjective evaluations, and slow processes cost companies time and talent.
             </p>
             <p className="text-gray-500 dark:text-gray-400 leading-relaxed mb-6">
-              TalentLink Africa uses Google Gemini AI to analyze candidates across four dimensions — skills, experience, projects, and education — producing ranked shortlists with clear, explainable reasoning.
+              TalentLink Africa uses AI to analyze candidates across  dimensions — sets by recruiter — producing ranked shortlists with clear, explainable reasoning.
             </p>
             <ul className="space-y-2">
               {["Reduce time-to-hire by up to 10x", "Eliminate unconscious bias in screening", "Give every candidate a fair, objective evaluation", "Keep recruiters in full control of final decisions"].map((item) => (

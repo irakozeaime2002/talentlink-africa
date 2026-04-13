@@ -19,7 +19,9 @@ export const changeApplicationStatus = createAsyncThunk(
 const applicationsSlice = createSlice({
   name: "applications",
   initialState,
-  reducers: {},
+  reducers: {
+    reset: () => initialState,
+  },
   extraReducers: (builder) => {
     builder
       .addCase(loadJobApplications.pending, (s) => { s.loading = true; })
@@ -33,4 +35,5 @@ const applicationsSlice = createSlice({
   },
 });
 
+export const { reset: resetApplications } = applicationsSlice.actions;
 export default applicationsSlice.reducer;

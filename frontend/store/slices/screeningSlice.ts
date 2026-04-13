@@ -34,6 +34,7 @@ const screeningSlice = createSlice({
   initialState,
   reducers: {
     clearActive: (s) => { s.active = null; },
+    reset: () => initialState,
   },
   extraReducers: (builder) => {
     builder
@@ -49,5 +50,5 @@ const screeningSlice = createSlice({
   },
 });
 
-export const { clearActive } = screeningSlice.actions;
+export const { clearActive, reset: resetScreening } = screeningSlice.actions;
 export default screeningSlice.reducer;

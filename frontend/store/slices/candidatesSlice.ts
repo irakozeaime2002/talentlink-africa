@@ -22,7 +22,9 @@ export const importResumes = createAsyncThunk("candidates/resumes", ({ files, jo
 const candidatesSlice = createSlice({
   name: "candidates",
   initialState,
-  reducers: {},
+  reducers: {
+    reset: () => initialState,
+  },
   extraReducers: (builder) => {
     builder
       .addCase(loadCandidates.pending, (s) => { s.loading = true; s.error = null; })
@@ -35,4 +37,5 @@ const candidatesSlice = createSlice({
   },
 });
 
+export const { reset: resetCandidates } = candidatesSlice.actions;
 export default candidatesSlice.reducer;

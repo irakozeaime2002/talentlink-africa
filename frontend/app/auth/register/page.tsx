@@ -21,7 +21,7 @@ export default function RegisterPage() {
     try {
       const res = await dispatch(registerUser(form)).unwrap();
       toast.success(`Welcome, ${res.user.name}! 🎉`);
-      router.push(res.user.role === "recruiter" ? "/" : "/board");
+      router.replace(res.user.role === "recruiter" ? "/" : "/board");
     } catch (err: any) {
       toast.error(err.message || "Registration failed");
     }

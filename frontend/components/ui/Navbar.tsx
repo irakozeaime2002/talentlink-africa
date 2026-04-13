@@ -3,6 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { logout } from "../../store/slices/authSlice";
+import { persistor } from "../../store";
 import { useRouter } from "next/navigation";
 import { LogOut, Menu, X, Moon, Sun, Palette } from "lucide-react";
 import { useState } from "react";
@@ -17,7 +18,11 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
 
-  const handleLogout = () => { dispatch(logout()); router.push("/home"); };
+  const handleLogout = () => {
+    dispatch(logout());
+    persistor.purge();
+    router.replace("/home");
+  };
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
 
   const publicLinks = [
