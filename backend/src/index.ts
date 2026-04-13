@@ -13,6 +13,7 @@ import adminRoutes from "./routes/adminRoutes";
 import chatRoutes from "./routes/chatRoutes";
 import planRoutes from "./routes/planRoutes";
 import paymentRoutes from "./routes/paymentRoutes";
+import advertisementRoutes from "./routes/advertisementRoutes";
 import { errorHandler } from "./middleware/errorHandler";
 
 const app = express();
@@ -40,6 +41,7 @@ app.use("/api/seed", seedRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/plan", planRoutes);
 app.use("/api/payment", paymentRoutes);
+app.use("/api/ads", advertisementRoutes);
 
 // Public plan config endpoints (no auth required)
 app.get("/api/public/plan-configs", async (_req, res, next) => {
@@ -54,6 +56,13 @@ app.get("/api/public/applicant-plan-configs", async (_req, res, next) => {
     const { ApplicantPlanConfig } = await import("./models/ApplicantPlanConfig");
     const configs = await ApplicantPlanConfig.find().sort({ plan: 1 });
     res.json(configs);
+  } catch (err) { next(err); }
+});
+app.get("/api/public/ads", async (_req, res, next) => {
+  try {
+    const { Advertisement } = await import("./models/Advertisement");
+    const ads = await Advertisement.find({ active: true }).sort({ createdAt: -1 });
+    res.json(ads);
   } catch (err) { next(err); }
 });
 app.use("/api/admin", adminRoutes);

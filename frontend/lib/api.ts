@@ -124,6 +124,13 @@ export const fetchApplicantUser = (applicant_id: string) =>
 export const deleteMyApplication = (id: string) =>
   api.delete(`/applications/${id}`).then((r) => r.data);
 
+// Advertisements
+export const fetchPublicAds = () => api.get("/public/ads").then((r) => r.data);
+export const adminGetAds = () => api.get("/ads").then((r) => r.data);
+export const adminCreateAd = (data: any) => api.post("/ads", data).then((r) => r.data);
+export const adminUpdateAd = (id: string, data: any) => api.put(`/ads/${id}`, data).then((r) => r.data);
+export const adminDeleteAd = (id: string) => api.delete(`/ads/${id}`).then((r) => r.data);
+
 // Chat
 export const sendChatMessage = (message: string, history: { role: "user" | "model"; parts: { text: string }[] }[]) =>
   api.post<{ reply: string }>("/chat", { message, history }).then((r) => r.data);

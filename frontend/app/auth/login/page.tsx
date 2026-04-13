@@ -21,7 +21,9 @@ export default function LoginPage() {
     try {
       const res = await dispatch(loginUser(form)).unwrap();
       toast.success(`Welcome back, ${res.user.name}!`);
-      router.replace(res.user.role === "recruiter" ? "/" : "/board");
+      const { role } = res.user;
+      const dest = role === "admin" ? "/admin" : role === "recruiter" ? "/" : "/board";
+      router.replace(dest);
     } catch (err: any) {
       toast.error(err.message || "Login failed");
     }

@@ -4,6 +4,8 @@ import Link from "next/link";
 import { fetchPublicJobs } from "../../lib/api";
 import { Job } from "../../types";
 import { MapPin, Briefcase, Search, Sparkles, Calendar, Clock } from "lucide-react";
+import AdBanner, { Ad } from "../../components/ui/AdBanner";
+import { fetchPublicAds } from "../../lib/api";
 
 const FILTERS = ["All", "Remote", "Internship", "AI / ML", "Kigali", "Full-time"];
 
@@ -31,6 +33,7 @@ function useCountdown(deadline?: string) {
 
 export default function JobBoardPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [ads, setAds] = useState<Ad[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState("All");
@@ -38,6 +41,7 @@ export default function JobBoardPage() {
 
   useEffect(() => {
     fetchPublicJobs().then((data) => { setJobs(data); setLoading(false); });
+    fetchPublicAds().then(setAds).catch(() => {});
   }, []);
 
   const filtered = jobs.filter((j) => {
@@ -120,29 +124,41 @@ export default function JobBoardPage() {
         )}
       </div>
 
-      {/* Job list */}
-      {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="glass-card p-5 animate-pulse">
-              <div className="h-5 bg-gray-200 dark:bg-white/10 rounded w-2/5 mb-3" />
-              <div className="h-3 bg-gray-100 dark:bg-white/5 rounded w-1/3 mb-4" />
-              <div className="h-3 bg-gray-100 dark:bg-white/5 rounded w-full mb-2" />
-              <div className="h-3 bg-gray-100 dark:bg-white/5 rounded w-4/5" />
+      {/* Main layout: jobs + ad sidebar */}
+      <div className={ads.length > 0 ? "flex gap-5 items-start" : ""}>
+        {/* Job list */}
+        <div className="flex-1 min-w-0">
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="glass-card p-5 animate-pulse">
+                  <div className="h-5 bg-gray-200 dark:bg-white/10 rounded w-2/5 mb-3" />
+                  <div className="h-3 bg-gray-100 dark:bg-white/5 rounded w-1/3 mb-4" />
+                  <div className="h-3 bg-gray-100 dark:bg-white/5 rounded w-full mb-2" />
+                  <div className="h-3 bg-gray-100 dark:bg-white/5 rounded w-4/5" />
+                </div>
+              ))}
             </div>
-          ))}
+          ) : filtered.length === 0 ? (
+            <div className="text-center py-20 text-gray-400">
+              <Search size={40} className="mx-auto mb-3 opacity-20" />
+              <p className="font-medium">No jobs found</p>
+              <p className="text-sm mt-1">Try a different search or filter</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {filtered.map((job) => <JobCard key={job._id} job={job} />)}
+            </div>
+          )}
         </div>
-      ) : filtered.length === 0 ? (
-        <div className="text-center py-20 text-gray-400">
-          <Search size={40} className="mx-auto mb-3 opacity-20" />
-          <p className="font-medium">No jobs found</p>
-          <p className="text-sm mt-1">Try a different search or filter</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filtered.map((job) => <JobCard key={job._id} job={job} />)}
-        </div>
-      )}
+
+        {/* Ad sidebar — only when ads exist */}
+        {ads.length > 0 && (
+          <div className="hidden lg:block w-64 shrink-0 sticky top-24">
+            <AdBanner ads={ads} />
+          </div>
+        )}
+      </div>
     </div>
   );
 }

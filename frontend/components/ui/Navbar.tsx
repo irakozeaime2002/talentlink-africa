@@ -60,6 +60,7 @@ export default function Navbar() {
     { href: "/admin/applications", label: "Applications" },
     { href: "/admin/subscriptions", label: "Subscriptions" },
     { href: "/admin/plans", label: "Plan Controls" },
+    { href: "/admin/ads", label: "Ads" },
   ];
 
   const links = user?.role === "admin" ? adminLinks : user?.role === "recruiter" ? recruiterLinks : user?.role === "applicant" ? applicantLinks : publicLinks;
