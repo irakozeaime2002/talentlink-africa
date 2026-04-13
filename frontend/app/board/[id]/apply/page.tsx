@@ -70,8 +70,8 @@ export default function ApplyPage() {
     fetchMyProfile()
       .then((p) => {
         console.log("[Profile check]", JSON.stringify(p));
-        const hasSkills = Array.isArray(p?.skills) && p.skills.filter((s: string) => s.trim()).length > 0;
-        const hasExperience = Array.isArray(p?.experience) && p.experience.some((e: any) => e.title?.trim().length > 0);
+        const hasSkills = Array.isArray(p?.skills) && p.skills.filter((s) => s.name?.trim()).length > 0;
+        const hasExperience = Array.isArray(p?.experience) && p.experience.some((e: any) => e.role?.trim().length > 0);
         console.log("[Profile]", { hasSkills, hasExperience });
         setProfileComplete(hasSkills && hasExperience);
       })
