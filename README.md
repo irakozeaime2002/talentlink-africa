@@ -717,11 +717,58 @@ This project was built by a team with the following roles:
 - No file size limits enforced (should be added for production)
 - Database indexes not optimized for large-scale queries (10,000+ candidates)
 
-### Known Limitations
-- No real-time notifications (email notifications only for password reset)
-- No candidate communication features (messaging, interview scheduling)
-- No analytics dashboard for recruiter insights
+### Current Limitations
+- Real-time notifications not implemented (email notifications only for password reset)
+- In-app messaging between recruiters and applicants not available
+- Interview scheduling features not included
 - No integration with external ATS (Applicant Tracking Systems)
+- Payment gateway integration not implemented (plan upgrades are admin-managed)
+- Mobile native apps not available (responsive web app only)
+
+---
+
+## Future Improvements
+
+While TalentLink Africa is fully functional and production-ready, here are potential enhancements for future versions:
+
+### Authentication & Security
+- **JWT Refresh Tokens** — Implement refresh token rotation for seamless session extension without requiring re-login every 7 days
+- **OAuth Integration** — Add social login (Google, LinkedIn, GitHub) for faster onboarding
+- **Two-Factor Authentication (2FA)** — Add optional 2FA for enhanced account security
+
+### AI & Screening
+- **Custom Scoring Weights** — Allow recruiters to adjust dimension weights (e.g., 50% skills, 20% experience) per job
+- **AI Interview Questions** — Generate personalized interview questions based on candidate gaps
+- **Bias Detection** — Add AI layer to detect and flag potential bias in job descriptions and screening results
+- **Multi-language Support** — Extend AI screening to support resumes and profiles in French, Swahili, and other African languages
+
+### Communication & Collaboration
+- **In-app Messaging** — Direct communication between recruiters and applicants
+- **Interview Scheduling** — Integrated calendar for booking and managing interviews
+- **Email Notifications** — Automated status updates for applicants (application received, shortlisted, rejected)
+- **Team Collaboration** — Multi-recruiter accounts with role permissions and shared candidate notes
+
+### Analytics & Insights
+- **Recruiter Dashboard** — Visualize time-to-hire, application funnel, top skills in demand
+- **Screening Analytics** — Track AI accuracy, recruiter override rates, and hiring outcomes
+- **Candidate Insights** — Show applicants their profile strength and improvement suggestions
+
+### Integrations
+- **ATS Integration** — Connect with external Applicant Tracking Systems (Greenhouse, Lever, BambooHR)
+- **LinkedIn Import** — Auto-populate candidate profiles from LinkedIn URLs
+- **Calendar Integration** — Sync with Google Calendar, Outlook for interview scheduling
+- **Payment Gateway** — Stripe/PayPal integration for subscription management
+
+### Storage & Performance
+- **Cloud Storage** — Migrate resume files from MongoDB to AWS S3 or Cloudinary for better scalability
+- **Database Optimization** — Add indexes and caching (Redis) for faster queries at scale (10,000+ candidates)
+- **Background Jobs** — Queue AI screening tasks with Bull/BullMQ for better resource management
+
+### User Experience
+- **Mobile App** — Native iOS/Android apps for on-the-go job browsing and application management
+- **Video Introductions** — Allow applicants to upload short video introductions
+- **Skill Assessments** — Integrate coding challenges or skill tests (HackerRank, Codility)
+- **Application Templates** — Save and reuse application responses across multiple jobs
 
 ---
 
