@@ -15,6 +15,7 @@
 |---|---|---|
 | Recruiter | nadine@gmail.com | 123456 |
 | Applicant | jacky@gmail.com | 123456 |
+| Admin | admin@linkafrica.com | Admin1 |
 
 > Both accounts contain dummy data for testing — jobs, candidates, applications, and screening results are pre-loaded.
 
@@ -787,7 +788,7 @@ While TalentLink Africa is fully functional and production-ready, here are poten
 ### Frontend (Vercel)
 ```bash
 cd frontend && npm run build
-# Deploy to Vercel — set NEXT_PUBLIC_API_URL to your backend URL
+# Deploy to Vercel — set NEXT_PUBLIC_API_URL to our backend URL
 ```
 
 ### Backend (Render)

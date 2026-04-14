@@ -165,12 +165,59 @@ export const updateMe = async (req: Request, res: Response, next: NextFunction):
     const allowed = ["name", "email", "phone", "date_of_birth", "gender", "nationality", "residence", "father_name", "mother_name", "national_id"];
     const update: Record<string, string> = {};
     allowed.forEach((f) => { if (req.body[f] !== undefined) update[f] = req.body[f]; });
+    
+    // Check if email is being changed and if it's already taken
+    if (update.email) {
+      const existing = await User.findOne({ email: update.email, _id: { $ne: (req as any).user.id } });
+      if (existing) { res.status(409).json({ error: "Email already in use" }); return; }
+    }
+    
     const user = await User.findByIdAndUpdate(
       (req as any).user.id,
       update,
       { new: true }
     ).select("-password");
     res.json(user);
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Change password for logged-in user
+ * 
+ * Requires current password for security verification.
+ * This is different from password reset which uses email tokens.
+ */
+export const changePassword = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    
+    if (!currentPassword || !newPassword) {
+      res.status(400).json({ error: "Current password and new password are required" });
+      return;
+    }
+    
+    if (newPassword.length < 6) {
+      res.status(400).json({ error: "New password must be at least 6 characters" });
+      return;
+    }
+    
+    const user = await User.findById((req as any).user.id);
+    if (!user) { res.status(404).json({ error: "User not found" }); return; }
+    
+    // Verify current password
+    const valid = await bcrypt.compare(currentPassword, user.password);
+    if (!valid) {
+      res.status(401).json({ error: "Current password is incorrect" });
+      return;
+    }
+    
+    // Hash and update new password
+    const hashed = await bcrypt.hash(newPassword, 10);
+    await User.findByIdAndUpdate(user._id, { password: hashed });
+    
+    res.json({ message: "Password changed successfully" });
   } catch (err) {
     next(err);
   }

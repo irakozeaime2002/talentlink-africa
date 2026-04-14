@@ -108,7 +108,7 @@ export const applyToJob = async (req: Request, res: Response, next: NextFunction
 export const getJobApplications = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const apps = await Application.find({ job_id: req.params.job_id })
-      .populate("applicant_id", "name email")
+      .populate("applicant_id", "name email phone")
       .sort({ createdAt: -1 });
     res.json(apps);
   } catch (err) { next(err); }
@@ -302,7 +302,7 @@ export const getMyJobsCandidates = async (req: Request, res: Response, next: Nex
 
 export const getApplicantUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const user = await User.findById(req.params.applicant_id).select("-password");
+    const user = await User.findById(req.params.applicant_id).select("-password -resetToken -resetTokenExpiry");
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
     res.json(user);
   } catch (err) { next(err); }

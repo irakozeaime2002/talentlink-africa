@@ -8,7 +8,7 @@ import toast from "react-hot-toast";
 import Link from "next/link";
 import { Job, User } from "../../types";
 import { fetchMyProfile, updateMyProfile, uploadMyCV } from "../../lib/api";
-import { Plus, Minus, Save, Paperclip, Upload, User as UserIcon, Briefcase, GraduationCap, FolderGit2, Phone, ArrowLeft, Crown, Globe, Link2 } from "lucide-react";
+import { Plus, Minus, Save, Paperclip, Upload, User as UserIcon, Briefcase, GraduationCap, FolderGit2, Phone, ArrowLeft, Crown, Globe, Link2, Lock, Eye, EyeOff } from "lucide-react";
 
 type SkillEntry = { name: string; level: string; yearsOfExperience: string };
 type LangEntry = { name: string; proficiency: string };
@@ -37,6 +37,9 @@ function ProfileContent() {
     father_name: "", mother_name: "", national_id: "",
   });
   const [personalSaving, setPersonalSaving] = useState(false);
+  const [passwordData, setPasswordData] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [showPasswords, setShowPasswords] = useState({ current: false, new: false, confirm: false });
   const [profileLoading, setProfileLoading] = useState(false);
   const [profileSaving, setProfileSaving] = useState(false);
   const [cvFilename, setCvFilename] = useState<string | null>(null);
@@ -107,6 +110,29 @@ function ProfileContent() {
       toast.success("Personal info saved!");
     } catch { toast.error("Update failed"); }
     finally { setPersonalSaving(false); }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast.error("Passwords do not match");
+      return;
+    }
+    if (passwordData.newPassword.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
+    setPasswordSaving(true);
+    try {
+      const { changePassword } = await import("../../lib/api");
+      await changePassword(passwordData.currentPassword, passwordData.newPassword);
+      toast.success("Password changed successfully!");
+      setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
+    } catch (err: any) {
+      toast.error(err.message || "Failed to change password");
+    } finally {
+      setPasswordSaving(false);
+    }
   };
 
   const handleCVUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -262,6 +288,83 @@ function ProfileContent() {
                 <input value={personal.national_id} onChange={(e) => setPersonal({ ...personal, national_id: e.target.value })} className={INPUT} placeholder="1 XXXX X XXXXXXX X XX" />
               </div>
             </div>
+          </div>
+
+          <div className="border-2 rounded-2xl p-5 bg-gradient-to-br from-white to-gray-50 dark:from-white/5 dark:to-white/10 shadow-sm hover:shadow-md transition" style={{ borderColor: "color-mix(in srgb, var(--accent) 15%, transparent)" }}>
+            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
+              <Lock size={14} style={{ color: "var(--accent)" }} />
+              Change Password
+            </h3>
+            <p className="text-xs text-gray-400 mb-4">Update your account password for security</p>
+            <form onSubmit={handleChangePassword} className="space-y-4">
+              <div>
+                <label className={LABEL}>Current Password <span className="text-red-500">*</span></label>
+                <div className="relative">
+                  <input
+                    type={showPasswords.current ? "text" : "password"}
+                    required
+                    value={passwordData.currentPassword}
+                    onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                    className={INPUT}
+                    placeholder="Enter current password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswords({ ...showPasswords, current: !showPasswords.current })}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    {showPasswords.current ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className={LABEL}>New Password <span className="text-red-500">*</span></label>
+                <div className="relative">
+                  <input
+                    type={showPasswords.new ? "text" : "password"}
+                    required
+                    value={passwordData.newPassword}
+                    onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                    className={INPUT}
+                    placeholder="Enter new password (min 6 characters)"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswords({ ...showPasswords, new: !showPasswords.new })}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    {showPasswords.new ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className={LABEL}>Confirm New Password <span className="text-red-500">*</span></label>
+                <div className="relative">
+                  <input
+                    type={showPasswords.confirm ? "text" : "password"}
+                    required
+                    value={passwordData.confirmPassword}
+                    onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                    className={INPUT}
+                    placeholder="Re-enter new password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswords({ ...showPasswords, confirm: !showPasswords.confirm })}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    {showPasswords.confirm ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+              <button
+                type="submit"
+                disabled={passwordSaving}
+                className="w-full flex items-center justify-center gap-2 bg-gray-800 dark:bg-white/10 text-white py-2.5 rounded-xl font-semibold disabled:opacity-50 hover:opacity-90 transition"
+              >
+                <Save size={15} /> {passwordSaving ? "Changing..." : "Change Password"}
+              </button>
+            </form>
           </div>
 
           <button type="submit" disabled={personalSaving} className="w-full flex items-center justify-center gap-2 btn-glow text-white py-2.5 rounded-xl font-semibold disabled:opacity-50">

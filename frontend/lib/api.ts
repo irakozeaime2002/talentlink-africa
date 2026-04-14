@@ -43,6 +43,8 @@ export const login = (data: { email: string; password: string }) =>
   api.post<{ token: string; user: User }>("/auth/login", data).then((r) => r.data);
 export const getMe = () => api.get<User>("/auth/me").then((r) => r.data);
 export const updateMe = (data: Partial<User>) => api.put<User>("/auth/me", data).then((r) => r.data);
+export const changePassword = (currentPassword: string, newPassword: string) =>
+  api.post<{ message: string }>("/auth/change-password", { currentPassword, newPassword }).then((r) => r.data);
 export const forgotPassword = (email: string) => api.post("/auth/forgot-password", { email }).then((r) => r.data);
 export const resetPassword = (token: string, password: string) => api.post("/auth/reset-password", { token, password }).then((r) => r.data);
 export const upgradePlan = (plan: string, billing: string) =>

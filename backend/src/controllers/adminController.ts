@@ -49,7 +49,7 @@ export const getUsers = async (req: Request, res: Response, next: NextFunction):
       { email: { $regex: search, $options: "i" } },
     ];
     const users = await User.find(filter)
-      .select("-password")
+      .select("-password -resetToken -resetTokenExpiry")
       .sort({ createdAt: -1 })
       .skip((+page - 1) * +limit)
       .limit(+limit);
@@ -60,7 +60,7 @@ export const getUsers = async (req: Request, res: Response, next: NextFunction):
 
 export const getUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const user = await User.findById(req.params.id).select("-password");
+    const user = await User.findById(req.params.id).select("-password -resetToken -resetTokenExpiry");
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
     res.json(user);
   } catch (err) { next(err); }
@@ -73,7 +73,7 @@ export const updateUser = async (req: Request, res: Response, next: NextFunction
       req.params.id,
       { name, email, role, phone, ...(plan ? { plan } : {}), ...(planExpiresAt ? { planExpiresAt } : {}) },
       { new: true }
-    ).select("-password");
+    ).select("-password -resetToken -resetTokenExpiry");
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
     res.json(user);
   } catch (err) { next(err); }
@@ -182,7 +182,7 @@ export const createAdmin = async (req: Request, res: Response, next: NextFunctio
 // ── Subscriptions ────────────────────────────────────────────────────────────
 export const getSubscriptions = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const users = await User.find({ role: { $in: ["recruiter", "applicant"] } }).select("-password").sort({ createdAt: -1 });
+    const users = await User.find({ role: { $in: ["recruiter", "applicant"] } }).select("-password -resetToken -resetTokenExpiry").sort({ createdAt: -1 });
     res.json(users);
   } catch (err) { next(err); }
 };
@@ -208,7 +208,7 @@ export const updateUserPlan = async (req: Request, res: Response, next: NextFunc
       req.params.id,
       { plan, planExpiresAt: planExpiresAt || null },
       { new: true }
-    ).select("-password");
+    ).select("-password -resetToken -resetTokenExpiry");
     
     res.json(updatedUser);
   } catch (err) { next(err); }
