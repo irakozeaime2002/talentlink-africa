@@ -17,7 +17,15 @@ async function testModels() {
     try {
       console.log(`\n[Testing] ${modelName}...`);
       const model = genAI.getGenerativeModel({ model: modelName });
-      const result = await model.generateContent("Say 'OK' if you can read this.");
+      
+      // Add timeout
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout after 10s')), 10000)
+      );
+      
+      const generatePromise = model.generateContent("Say 'OK' if you can read this.");
+      
+      const result = await Promise.race([generatePromise, timeoutPromise]);
       const text = result.response.text();
       console.log(`✓ SUCCESS: ${modelName} → ${text.slice(0, 50)}`);
       return; // Stop after first success

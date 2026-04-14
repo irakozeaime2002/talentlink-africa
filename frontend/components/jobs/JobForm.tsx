@@ -20,6 +20,7 @@ const empty: JobFormData = {
 
 const INPUT = "w-full border dark:border-white/10 rounded-xl px-4 py-3 text-sm bg-white dark:bg-white/5 dark:text-gray-200 focus:outline-none focus:ring-2 transition-all placeholder-gray-400";
 const LABEL = "block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5";
+const CHECKBOX = "w-4 h-4 rounded border-gray-300 focus:ring-2 transition-all cursor-pointer";
 
 // Defined OUTSIDE component to prevent re-render focus loss
 const Section = ({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) => (
@@ -227,26 +228,49 @@ export default function JobForm({ initial = {}, onSubmit, loading, onDirty }: Pr
         <div className="flex gap-2 mb-3">
           <input className={INPUT} value={docInput}
             onChange={(e) => setDocInput(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addToArray("required_documents", docInput, () => setDocInput("")); } }}
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); if (docInput.trim()) { update((f) => ({ ...f, required_documents: [...f.required_documents, { name: docInput.trim(), optional: false }] })); setDocInput(""); } } }}
             placeholder="e.g. Resume, Portfolio, Certificate — press Enter" />
-          <button type="button" onClick={() => addToArray("required_documents", docInput, () => setDocInput(""))}
+          <button type="button" onClick={() => { if (docInput.trim()) { update((f) => ({ ...f, required_documents: [...f.required_documents, { name: docInput.trim(), optional: false }] })); setDocInput(""); } }}
             className="px-4 py-2 rounded-xl text-white btn-glow shrink-0">
             <Plus size={16} />
           </button>
         </div>
         <div className="space-y-2">
-          {(form.required_documents || []).map((d, i) => (
-            <div key={i} className="flex items-center justify-between rounded-xl px-4 py-3 text-sm"
-              style={{ background: "var(--accent-light)" }}>
-              <span className="flex items-center gap-2" style={{ color: "var(--accent)" }}>
-                <Paperclip size={13} /> {d}
-              </span>
-              <button type="button" onClick={() => removeFromArray("required_documents", i)}
-                className="text-red-400 hover:text-red-600 transition ml-3 shrink-0">
-                <X size={14} />
-              </button>
-            </div>
-          ))}
+          {(form.required_documents || []).map((d, i) => {
+            const doc = typeof d === 'string' ? { name: d, optional: false } : d;
+            return (
+              <div key={i} className="flex items-center justify-between rounded-xl px-4 py-3 text-sm"
+                style={{ background: "var(--accent-light)" }}>
+                <div className="flex items-center gap-3 flex-1">
+                  <Paperclip size={13} style={{ color: "var(--accent)" }} />
+                  <span style={{ color: "var(--accent)" }}>{doc.name}</span>
+                  <label className="flex items-center gap-2 ml-auto cursor-pointer">
+                    <input type="checkbox" className={CHECKBOX}
+                      style={{ accentColor: "var(--accent)" }}
+                      checked={doc.optional}
+                      onChange={(e) => {
+                        update((f) => ({
+                          ...f,
+                          required_documents: f.required_documents.map((item, idx) => {
+                            if (idx === i) {
+                              const current = typeof item === 'string' ? { name: item, optional: false } : item;
+                              return { ...current, optional: e.target.checked };
+                            }
+                            return item;
+                          })
+                        }));
+                      }}
+                    />
+                    <span className="text-xs" style={{ color: "var(--accent)" }}>Optional</span>
+                  </label>
+                </div>
+                <button type="button" onClick={() => removeFromArray("required_documents", i)}
+                  className="text-red-400 hover:text-red-600 transition ml-3 shrink-0">
+                  <X size={14} />
+                </button>
+              </div>
+            );
+          })}
         </div>
       </Section>
 

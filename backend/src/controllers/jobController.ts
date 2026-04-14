@@ -1,6 +1,29 @@
+/**
+ * Job Controller - Manages job postings
+ * 
+ * Jobs have three states:
+ * - draft: Not visible to applicants, recruiter is still working on it
+ * - open: Published on the job board, accepting applications
+ * - closed: No longer accepting applications (either manually closed or deadline passed)
+ * 
+ * We automatically close jobs when their deadline passes. This happens:
+ * 1. When recruiters view their job list
+ * 2. When applicants browse the public job board
+ * 3. When someone tries to view a specific job
+ * 
+ * This "lazy" approach is simpler than running a cron job and works fine
+ * for most use cases. Jobs get closed within seconds of their deadline.
+ */
+
 import { Request, Response, NextFunction } from "express";
 import { Job } from "../models/Job";
 
+/**
+ * Create a new job posting
+ * 
+ * The recruiter_id is automatically set from the JWT token so users can only
+ * create jobs under their own account (security).
+ */
 export const createJob = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const recruiter_id = (req as any).user?.id;
@@ -11,7 +34,12 @@ export const createJob = async (req: Request, res: Response, next: NextFunction)
   }
 };
 
-// Recruiter's own jobs
+/**
+ * Get all jobs for the logged-in recruiter
+ * 
+ * Before returning the list, we auto-close any jobs that passed their deadline.
+ * This keeps the job list accurate without needing a background worker.
+ */
 export const getJobs = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const recruiter_id = (req as any).user?.id;
@@ -29,7 +57,17 @@ export const getJobs = async (req: Request, res: Response, next: NextFunction): 
   }
 };
 
-// Public: all open jobs (for job board)
+/**
+ * Get all open jobs for the public job board
+ * 
+ * This is what applicants see when they browse available positions.
+ * We filter out:
+ * - Draft jobs (not ready to publish)
+ * - Closed jobs (no longer accepting applications)
+ * - Jobs past their deadline (auto-closed)
+ * 
+ * No authentication required - anyone can browse jobs.
+ */
 export const getPublicJobs = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const now = new Date();
@@ -48,6 +86,12 @@ export const getPublicJobs = async (_req: Request, res: Response, next: NextFunc
   }
 };
 
+/**
+ * Get a single job for the public job board
+ * 
+ * This shows the full job details and application form.
+ * We verify the job is still open and hasn't passed its deadline.
+ */
 export const getPublicJob = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const now = new Date();
@@ -63,6 +107,12 @@ export const getPublicJob = async (req: Request, res: Response, next: NextFuncti
   }
 };
 
+/**
+ * Get a single job (for recruiters)
+ * 
+ * Unlike the public endpoint, this doesn't filter by status.
+ * Recruiters can view their own draft and closed jobs.
+ */
 export const getJob = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const job = await Job.findById(req.params.id);
@@ -73,10 +123,21 @@ export const getJob = async (req: Request, res: Response, next: NextFunction): P
   }
 };
 
+/**
+ * Update a job posting
+ * 
+ * Smart deadline handling:
+ * - If deadline is moved to the future, reopen a closed job
+ * - If deadline is moved to the past, auto-close the job
+ * - If deadline is removed, reopen the job (no expiry)
+ * 
+ * This prevents recruiters from accidentally leaving jobs open past their deadline.
+ */
 export const updateJob = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const updates = { ...req.body };
-    // Auto-adjust status based on deadline change
+    // Smart status adjustment based on deadline changes
+    // If they extend the deadline, we should reopen the job automatically
     if (updates.deadline) {
       const now = new Date();
       const newDeadline = new Date(updates.deadline);
@@ -97,6 +158,12 @@ export const updateJob = async (req: Request, res: Response, next: NextFunction)
   }
 };
 
+/**
+ * Delete a job posting
+ * 
+ * This also deletes all associated applications and screening results
+ * (handled by MongoDB cascade delete or application logic elsewhere).
+ */
 export const deleteJob = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     await Job.findByIdAndDelete(req.params.id);

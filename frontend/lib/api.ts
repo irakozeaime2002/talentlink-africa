@@ -2,7 +2,10 @@ import axios, { AxiosError } from "axios";
 import Cookies from "js-cookie";
 import { Job, Candidate, ScreeningResult, User, Application } from "../types";
 
-const api = axios.create({ baseURL: process.env.NEXT_PUBLIC_API_URL });
+const api = axios.create({ 
+  baseURL: process.env.NEXT_PUBLIC_API_URL,
+  timeout: 120000, // 2 minutes for AI screening
+});
 
 api.interceptors.request.use((config) => {
   const token = Cookies.get("token");

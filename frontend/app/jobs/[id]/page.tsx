@@ -303,7 +303,7 @@ export default function JobDetailPage() {
           <div className="flex items-center gap-4 pt-4 border-t">
             <div className="flex items-center gap-2 text-sm">
               <label className="text-gray-500 font-medium">Shortlist Top:</label>
-              <select value={topN} onChange={(e) => setTopN(Number(e.target.value))} className="border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              <select value={topN} onChange={(e) => setTopN(Number(e.target.value))} className="border border-gray-300 dark:border-white/10 bg-white dark:bg-white/5 text-gray-900 dark:text-white rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:[&>option]:bg-gray-800 dark:[&>option]:text-white">
                 <option value={10}>10</option>
                 <option value={20}>20</option>
               </select>

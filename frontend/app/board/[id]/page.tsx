@@ -176,12 +176,15 @@ export default function PublicJobDetailPage() {
                 <p className="font-bold text-xs text-gray-500 dark:text-gray-400 uppercase tracking-widest">Required Documents</p>
               </div>
               <div className="flex flex-wrap gap-2">
-                {job.required_documents.map((d, i) => (
-                  <span key={i} className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full font-semibold"
-                    style={{ background: "var(--accent-light)", color: "var(--accent)" }}>
-                    <Paperclip size={11} /> {d}
-                  </span>
-                ))}
+                {job.required_documents.map((d, i) => {
+                  const doc = typeof d === 'string' ? { name: d, optional: false } : d;
+                  return (
+                    <span key={i} className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full font-semibold"
+                      style={{ background: "var(--accent-light)", color: "var(--accent)" }}>
+                      <Paperclip size={11} /> {doc.name} {doc.optional && <span className="text-gray-400">(optional)</span>}
+                    </span>
+                  );
+                })}
               </div>
             </div>
           )}

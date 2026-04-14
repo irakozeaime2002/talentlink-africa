@@ -14,7 +14,7 @@ export interface IJob extends Document {
   salary_range: string;
   deadline?: Date;
   application_questions: string[];
-  required_documents: string[];
+  required_documents: { name: string; optional: boolean }[];
   createdAt: Date;
 }
 
@@ -33,7 +33,7 @@ const JobSchema = new Schema<IJob>(
     salary_range: { type: String, default: "" },
     deadline: Date,
     application_questions: [String],
-    required_documents: [String],
+    required_documents: [{ name: String, optional: { type: Boolean, default: false } }],
   },
   { timestamps: true }
 );

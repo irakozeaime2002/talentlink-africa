@@ -6,6 +6,21 @@ import { ScreeningResult } from "../models/ScreeningResult";
 import { screenCandidates } from "../services/aiService";
 import { CandidateInput, JobInput } from "../types";
 
+/**
+ * Runs AI screening on selected candidates for a job
+ * 
+ * This is the main endpoint recruiters use to get AI-powered candidate rankings.
+ * It handles all the complexity of gathering candidate data, checking plan limits,
+ * calling the AI service, and saving the results.
+ * 
+ * The flow:
+ * 1. Validate the request and check if the recruiter has screening credits left
+ * 2. Fetch all candidate profiles and their application data (cover letters, answers, documents)
+ * 3. Send everything to the AI service for evaluation
+ * 4. Save the ranked results and increment the usage counter
+ * 
+ * Plan limits are enforced here - free users get 5 screenings/month, pro gets 50, enterprise unlimited.
+ */
 export const runScreening = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { job_id, candidate_ids, top_n = 20 } = req.body as {
@@ -26,7 +41,8 @@ export const runScreening = async (req: Request, res: Response, next: NextFuncti
 
     console.log(`[Screening] Job found: ${job.title}`);
 
-    // Check screening limits
+    // Check if the recruiter has hit their monthly screening limit
+    // Free plan = 5/month, Pro = 50/month, Enterprise = unlimited (-1)
     const User = (await import("../models/User")).User;
     const PlanConfig = (await import("../models/PlanConfig")).PlanConfig;
     const recruiter = await User.findById((req as any).user?.id);
@@ -51,7 +67,8 @@ export const runScreening = async (req: Request, res: Response, next: NextFuncti
     const now = new Date();
     const resetDate = recruiter.screeningsResetAt || new Date(0);
 
-    // Reset counter if a month has passed
+    // Reset the counter if it's been more than 30 days since last reset
+    // This gives users a fresh batch of screenings each month
     if (now.getTime() - resetDate.getTime() > 30 * 24 * 60 * 60 * 1000) {
       recruiter.screeningsUsed = 0;
       recruiter.screeningsResetAt = now;
@@ -77,7 +94,8 @@ export const runScreening = async (req: Request, res: Response, next: NextFuncti
 
     console.log(`[Screening] Found ${candidates.length} candidates`);
 
-    // Fetch applications for this job to get cover letters, answers, and ALL documents
+    // Fetch applications to get cover letters, answers, and uploaded documents
+    // These give us way more context than just the basic profile
     const applications = await Application.find({ job_id });
     console.log(`[Screening] Found ${applications.length} applications`);
 
@@ -91,7 +109,8 @@ export const runScreening = async (req: Request, res: Response, next: NextFuncti
       const user = await User.findById(app.applicant_id).select("email");
       if (!user?.email) continue;
 
-      // Extract text from all uploaded documents using type-aware extractor
+      // Try to extract text from each uploaded document (CV, certificates, etc)
+      // We send this text to the AI so it can validate document quality
       const docTexts: { name: string; text: string }[] = [];
       for (const doc of (app.documents || [])) {
         try {
@@ -118,20 +137,22 @@ export const runScreening = async (req: Request, res: Response, next: NextFuncti
       preferred_skills: job.preferred_skills,
       experience_level: job.experience_level,
       responsibilities: job.responsibilities,
-      required_documents: job.required_documents || [],
+      required_documents: (job.required_documents || []).map(d => d.name),
       application_questions: job.application_questions || [],
     };
 
     const candidateInputs: CandidateInput[] = candidates.map((c) => {
       const appData = c.email ? emailToAppData[c.email] : undefined;
-      // Decode CV from base64 if present
+      // Decode the CV from base64 if they uploaded one
+      // Limit to 4000 chars to keep the prompt size reasonable
       let cvText: string | undefined;
       if (c.cv_data) {
         try {
           cvText = Buffer.from(c.cv_data, "base64").toString("utf-8").slice(0, 4000);
         } catch { cvText = c.cv_data.slice(0, 4000); }
       }
-      // Build combined document text from all uploaded docs
+      // Combine all document texts with labels so the AI knows what each file is
+      // Format: [Document: resume.pdf]\n<content>\n\n[Document: certificate.pdf]\n<content>
       const docTexts = appData?.documents?.map((d) =>
         `[Document: ${d.name}]\n${d.text}`
       ).join("\n\n") || "";
@@ -165,7 +186,8 @@ export const runScreening = async (req: Request, res: Response, next: NextFuncti
 
     const result = await ScreeningResult.create({ job_id, ...output });
 
-    // Increment screening counter (permanent, cannot be reset by deleting results)
+    // Increment the screening counter - this is permanent and can't be reset by deleting results
+    // This prevents abuse where users delete results to get more free screenings
     recruiter.screeningsUsed += 1;
     await recruiter.save();
 

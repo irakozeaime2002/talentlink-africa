@@ -13,7 +13,7 @@ export interface Job {
   salary_range: string;
   deadline?: string;
   application_questions: string[];
-  required_documents: string[];
+  required_documents: { name: string; optional: boolean }[] | string[];
   createdAt: string;
 }
 

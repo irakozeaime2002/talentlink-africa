@@ -38,7 +38,8 @@ function AutoTextarea({
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       rows={minRows}
-      className={`w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none overflow-hidden transition-all ${className}`}
+      className={`w-full border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm bg-white dark:bg-white/5 text-gray-900 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 resize-none overflow-hidden transition-all ${className}`}
+      style={{ focusRingColor: "var(--accent)" } as any}
     />
   );
 }
@@ -104,9 +105,10 @@ export default function ApplyPage() {
 
     // Validate required documents
     if (job?.required_documents?.length) {
-      for (const docName of job.required_documents) {
-        if (!docFiles[docName]) {
-          toast.error(`Please upload: ${docName}`);
+      for (const d of job.required_documents) {
+        const doc = typeof d === 'string' ? { name: d, optional: false } : d;
+        if (!doc.optional && !docFiles[doc.name]) {
+          toast.error(`Please upload: ${doc.name}`);
           return;
         }
       }
@@ -147,16 +149,17 @@ export default function ApplyPage() {
 
   if (alreadyApplied) return (
     <div className="max-w-lg mx-auto text-center py-24">
-      <div className="w-20 h-20 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-6">
-        <CheckCircle size={40} className="text-indigo-500" />
+      <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 accent-icon-bg">
+        <CheckCircle size={40} className="text-white" />
       </div>
-      <h2 className="text-2xl font-bold mb-2">Already Applied</h2>
-      <p className="text-gray-500 mb-8">You have already submitted an application for <span className="font-semibold text-gray-700">{job.title}</span>. You cannot apply twice to the same job.</p>
+      <h2 className="text-2xl font-bold mb-2 text-gray-900 dark:text-white">Already Applied</h2>
+      <p className="text-gray-500 dark:text-gray-400 mb-8">You have already submitted an application for <span className="font-semibold text-gray-700 dark:text-gray-300">{job.title}</span>. You cannot apply twice to the same job.</p>
       <div className="flex gap-3 justify-center">
-        <Link href="/my-applications" className="bg-indigo-600 text-white px-6 py-2.5 rounded-xl text-sm font-semibold hover:bg-indigo-700 transition">
+        <Link href="/my-applications" className="btn-glow text-white px-6 py-2.5 rounded-xl text-sm font-semibold transition">
           View My Applications
         </Link>
-        <Link href="/board" className="border border-gray-200 text-gray-600 px-6 py-2.5 rounded-xl text-sm font-semibold hover:bg-gray-50 transition">
+        <Link href="/board" className="border-2 px-6 py-2.5 rounded-xl text-sm font-semibold transition hover:opacity-80"
+          style={{ borderColor: "var(--accent)", color: "var(--accent)" }}>
           Browse More Jobs
         </Link>
       </div>
@@ -165,7 +168,7 @@ export default function ApplyPage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <button onClick={() => router.back()} className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-indigo-600 transition">
+      <button onClick={() => router.back()} className="inline-flex items-center gap-1.5 text-sm font-medium hover:opacity-80 transition" style={{ color: "var(--accent)" }}>
         <ArrowLeft size={14} /> Back to Job
       </button>
 
@@ -176,7 +179,7 @@ export default function ApplyPage() {
       >
         <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full translate-x-1/2 -translate-y-1/2 blur-2xl" />
         <h1 className="text-xl font-bold mb-1 relative z-10">Applying for: {job.title}</h1>
-        <div className="flex flex-wrap gap-4 text-indigo-200 text-sm relative z-10">
+        <div className="flex flex-wrap gap-4 text-white/80 text-sm relative z-10">
           {job.location && <span className="flex items-center gap-1"><MapPin size={13} />{job.location}</span>}
           {job.experience_level && <span className="flex items-center gap-1"><Briefcase size={13} />{job.experience_level}</span>}
           {job.salary_range && <span className="text-white font-medium">RWF {job.salary_range}</span>}
@@ -186,38 +189,38 @@ export default function ApplyPage() {
 
       {/* Profile status */}
       {profileComplete === null ? (
-        <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-2xl p-4 animate-pulse">
-          <div className="w-5 h-5 bg-gray-200 rounded-full shrink-0" />
-          <div className="h-4 bg-gray-200 rounded w-40" />
+        <div className="flex items-center gap-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-4 animate-pulse">
+          <div className="w-5 h-5 bg-gray-200 dark:bg-white/10 rounded-full shrink-0" />
+          <div className="h-4 bg-gray-200 dark:bg-white/10 rounded w-40" />
         </div>
       ) : profileComplete ? (
-        <div className="flex items-center gap-3 bg-green-50 border border-green-200 rounded-2xl p-4">
-          <CheckCircle size={20} className="text-green-500 shrink-0" />
+        <div className="flex items-center gap-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/50 rounded-2xl p-4">
+          <CheckCircle size={20} className="text-green-500 dark:text-green-400 shrink-0" />
           <div className="flex-1">
-            <p className="font-semibold text-green-800 text-sm">Profile ready</p>
-            <p className="text-xs text-green-600 mt-0.5">Your skills, experience, education and projects will be attached.</p>
+            <p className="font-semibold text-green-800 dark:text-green-300 text-sm">Profile ready</p>
+            <p className="text-xs text-green-600 dark:text-green-400/80 mt-0.5">Your skills, experience, education and projects will be attached.</p>
           </div>
-          <Link href={`/profile?returnTo=/board/${id}/apply`} className="shrink-0 text-xs text-green-600 border border-green-300 px-3 py-1.5 rounded-lg hover:bg-green-100 font-medium transition">Edit</Link>
+          <Link href={`/profile?returnTo=/board/${id}/apply`} className="shrink-0 text-xs text-green-600 dark:text-green-400 border border-green-300 dark:border-green-700 px-3 py-1.5 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 font-medium transition">Edit</Link>
         </div>
       ) : (
-        <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-2xl p-4">
-          <AlertCircle size={20} className="text-amber-500 shrink-0" />
+        <div className="flex items-center gap-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 rounded-2xl p-4">
+          <AlertCircle size={20} className="text-amber-500 dark:text-amber-400 shrink-0" />
           <div className="flex-1">
-            <p className="font-semibold text-amber-800 text-sm">Profile incomplete</p>
-            <p className="text-xs text-amber-600 mt-0.5">Add skills & experience for better results.</p>
+            <p className="font-semibold text-amber-800 dark:text-amber-300 text-sm">Profile incomplete</p>
+            <p className="text-xs text-amber-600 dark:text-amber-400/80 mt-0.5">Add skills & experience for better results.</p>
           </div>
-          <Link href={`/profile?returnTo=/board/${id}/apply`} className="shrink-0 text-xs bg-amber-500 text-white px-3 py-1.5 rounded-lg hover:bg-amber-600 font-medium transition">Complete Now</Link>
+          <Link href={`/profile?returnTo=/board/${id}/apply`} className="shrink-0 text-xs bg-amber-500 dark:bg-amber-600 text-white px-3 py-1.5 rounded-lg hover:bg-amber-600 dark:hover:bg-amber-700 font-medium transition">Complete Now</Link>
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Custom questions */}
         {job.application_questions?.length > 0 && (
-          <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm space-y-5">
-            <h2 className="font-bold text-gray-900">Application Questions</h2>
+          <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-6 shadow-sm space-y-5">
+            <h2 className="font-bold text-gray-900 dark:text-white">Application Questions</h2>
             {job.application_questions.map((q, i) => (
               <div key={i}>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{i + 1}. {q}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{i + 1}. {q}</label>
                 <AutoTextarea
                   value={answers[i] || ""}
                   onChange={(v) => { const n = [...answers]; n[i] = v; setAnswers(n); }}
@@ -237,41 +240,44 @@ export default function ApplyPage() {
               <h2 className="font-bold text-gray-900 dark:text-white">Required Documents</h2>
             </div>
             <p className="text-xs text-gray-400">PDFs will be analyzed by AI to improve your screening score.</p>
-            {job.required_documents.map((docName) => (
-              <div key={docName}>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                  {docName} <span className="text-red-400">*</span>
-                </label>
-                <label className="flex items-center gap-3 border-2 border-dashed rounded-xl px-4 py-4 cursor-pointer transition hover:border-opacity-80"
-                  style={{ borderColor: docFiles[docName] ? "var(--accent)" : "#e5e7eb", background: docFiles[docName] ? "var(--accent-light)" : "transparent" }}>
-                  <input type="file" className="hidden" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) setDocFiles((prev) => ({ ...prev, [docName]: file }));
-                    }} />
-                  {docFiles[docName] ? (
-                    <>
-                      <FileText size={18} style={{ color: "var(--accent)" }} />
-                      <span className="text-sm font-medium" style={{ color: "var(--accent)" }}>{docFiles[docName].name}</span>
-                    </>
-                  ) : (
-                    <>
-                      <Upload size={18} className="text-gray-400" />
-                      <span className="text-sm text-gray-400">Click to upload {docName} (PDF, DOC, image)</span>
-                    </>
-                  )}
-                </label>
-              </div>
-            ))}
+            {job.required_documents.map((d) => {
+              const doc = typeof d === 'string' ? { name: d, optional: false } : d;
+              return (
+                <div key={doc.name}>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    {doc.name} {doc.optional ? <span className="text-gray-400 font-normal">(optional)</span> : <span className="text-red-400">*</span>}
+                  </label>
+                  <label className="flex items-center gap-3 border-2 border-dashed rounded-xl px-4 py-4 cursor-pointer transition hover:border-opacity-80"
+                    style={{ borderColor: docFiles[doc.name] ? "var(--accent)" : "#e5e7eb", background: docFiles[doc.name] ? "var(--accent-light)" : "transparent" }}>
+                    <input type="file" className="hidden" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) setDocFiles((prev) => ({ ...prev, [doc.name]: file }));
+                      }} />
+                    {docFiles[doc.name] ? (
+                      <>
+                        <FileText size={18} style={{ color: "var(--accent)" }} />
+                        <span className="text-sm font-medium" style={{ color: "var(--accent)" }}>{docFiles[doc.name].name}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Upload size={18} className="text-gray-400" />
+                        <span className="text-sm text-gray-400">Click to upload {doc.name} (PDF, DOC, image)</span>
+                      </>
+                    )}
+                  </label>
+                </div>
+              );
+            })}
           </div>
         )}
 
         {/* Cover letter */}
-        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-          <h2 className="font-bold text-gray-900 mb-1">
-            Cover Letter <span className="text-gray-400 font-normal text-sm">(optional)</span>
+        <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-6 shadow-sm">
+          <h2 className="font-bold text-gray-900 dark:text-white mb-1">
+            Cover Letter <span className="text-gray-400 dark:text-gray-500 font-normal text-sm">(optional)</span>
           </h2>
-          <p className="text-xs text-gray-400 mb-3">Tell the recruiter why you're a great fit for this role</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">Tell the recruiter why you're a great fit for this role</p>
           <AutoTextarea
             value={coverLetter}
             onChange={setCoverLetter}
@@ -283,7 +289,7 @@ export default function ApplyPage() {
         <button
           type="submit"
           disabled={submitting}
-          className="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white py-3.5 rounded-2xl font-semibold hover:bg-indigo-700 disabled:opacity-50 transition text-sm shadow-lg shadow-indigo-100"
+          className="w-full flex items-center justify-center gap-2 btn-glow text-white py-3.5 rounded-2xl font-semibold disabled:opacity-50 transition text-sm shadow-lg"
         >
           <Send size={16} /> {submitting ? "Submitting…" : "Submit Application"}
         </button>

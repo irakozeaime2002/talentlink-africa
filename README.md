@@ -222,7 +222,9 @@ The application provides a complete recruiter-facing interface that supports:
 - **My Applications** — Track all submitted applications and their current status in one place
 
 ### AI Screening Engine
-- **Gemini AI Integration** — Uses `gemini-2.5-flash` with automatic fallback through multiple models on quota/availability errors
+- **Gemini AI Integration** — Uses `gemini-flash-latest` with automatic fallback through 5 models on quota/availability errors
+- **Multi-model Fallback** — `gemini-flash-latest` → `gemini-pro-latest` → `gemini-3-flash-preview` → `gemini-2.0-flash-lite` → `gemini-2.5-flash-lite`
+- **Timeout Protection** — 30-second timeout per model attempt prevents hanging on slow/unavailable models
 - **4-Dimension Scoring** — Skills (40%), Experience (30%), Projects (20%), Education (10%)
 - **Deterministic Output** — Temperature set to 0 with server-side score recomputation to guarantee formula consistency
 - **Explainability** — Every candidate gets strengths, gaps, a narrative reason, and a recommendation label
@@ -234,7 +236,7 @@ The application provides a complete recruiter-facing interface that supports:
 
 ### AI Chat Assistant
 - **TalentLink Africa AI Assistant** — In-app chat powered by Gemini, context-aware for both recruiter and applicant workflows
-- **Multi-model fallback** — Tries `gemini-2.5-flash` → `gemini-2.0-flash` → `gemini-1.5-flash` with exponential backoff on rate limits
+- **Multi-model fallback** — Tries multiple Gemini models with exponential backoff on rate limits
 - **Privacy-aware** — Never reveals AI scoring details or ranking algorithms to applicants
 
 ### Platform & UI
@@ -311,9 +313,9 @@ The application provides a complete recruiter-facing interface that supports:
                           │
 ┌─────────────────────────▼───────────────────────────────────┐
 │                     GEMINI API                              │
-│            gemini-2.5-flash (primary model)                 │
-│   Fallback: gemini-2.0-flash → gemini-2.0-flash-001         │
-│                  → gemini-pro-latest                        │
+│         gemini-flash-latest (primary model)                 │
+│   Fallback: gemini-pro-latest → gemini-3-flash-preview      │
+│      → gemini-2.0-flash-lite → gemini-2.5-flash-lite        │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -505,7 +507,8 @@ Strengths must reference specific skill names, job titles, companies, or project
 - Missing data is explicitly flagged and scored low
 - All output is structured JSON — no free-form hallucination
 - Temperature set to 0; scores recomputed server-side for full determinism
-- Multi-model fallback: `gemini-2.5-flash` → `gemini-2.0-flash` → `gemini-2.0-flash-001` → `gemini-pro-latest`
+- Multi-model fallback: 5 Gemini models tried sequentially with 30s timeout each
+- Models verified via API: `gemini-flash-latest`, `gemini-pro-latest`, `gemini-3-flash-preview`, `gemini-2.0-flash-lite`, `gemini-2.5-flash-lite`
 
 ---
 
@@ -586,8 +589,9 @@ NEXT_PUBLIC_API_URL=http://localhost:5000/api
 | Method | Endpoint | Description |
 |---|---|---|
 | POST | /api/candidates | Create profile |
-| GET | /api/candidates | List all |
-| DELETE | /api/candidates/:id | Remove |
+| GET | /api/candidates | List all imported candidates |
+| DELETE | /api/candidates/:id | Remove single candidate |
+| POST | /api/candidates/bulk-delete | Delete multiple candidates |
 | POST | /api/candidates/upload/csv | Upload CSV/XLSX |
 | POST | /api/candidates/upload/resumes | Upload PDF resumes |
 
@@ -641,11 +645,12 @@ NEXT_PUBLIC_API_URL=http://localhost:5000/api
 
 ### Gemini API Integration
 
-**Primary Model:** `gemini-2.5-flash`  
-**Fallback Chain:** `gemini-2.0-flash` → `gemini-2.0-flash-001` → `gemini-pro-latest`  
+**Primary Model:** `gemini-flash-latest`  
+**Fallback Chain:** `gemini-pro-latest` → `gemini-3-flash-preview` → `gemini-2.0-flash-lite` → `gemini-2.5-flash-lite`  
 **Temperature:** 0 (deterministic output)  
 **Prompt Engineering:** 5-step structured prompt with algorithmic scoring rubrics  
 **Output Format:** Structured JSON only (no markdown, no free-form text)  
+**Multi-model Resilience:** Automatically tries 5 different Gemini models with 30-second timeout per model to ensure high availability
 
 ---
 
