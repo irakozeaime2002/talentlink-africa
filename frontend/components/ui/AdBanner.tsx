@@ -15,21 +15,27 @@ export interface Ad {
 
 export default function AdBanner({ ads }: { ads: Ad[] }) {
   const [current, setCurrent] = useState(0);
-  const [animating, setAnimating] = useState(false);
+  const [isSliding, setIsSliding] = useState(false);
 
   useEffect(() => {
     if (ads.length <= 1) return;
-    const t = setInterval(() => slide("next"), 5000);
+    const t = setInterval(() => {
+      setIsSliding(true);
+      setTimeout(() => {
+        setCurrent((c) => (c + 1) % ads.length);
+        setTimeout(() => setIsSliding(false), 50);
+      }, 600);
+    }, 5000);
     return () => clearInterval(t);
-  }, [ads.length, current]);
+  }, [ads.length]);
 
   const slide = (dir: "next" | "prev") => {
-    if (animating) return;
-    setAnimating(true);
+    if (isSliding) return;
+    setIsSliding(true);
     setTimeout(() => {
       setCurrent((c) => dir === "next" ? (c + 1) % ads.length : (c - 1 + ads.length) % ads.length);
-      setAnimating(false);
-    }, 200);
+      setTimeout(() => setIsSliding(false), 50);
+    }, 600);
   };
 
   if (ads.length === 0) return null;
@@ -49,7 +55,7 @@ export default function AdBanner({ ads }: { ads: Ad[] }) {
           style={{ background: "radial-gradient(circle, #a78bfa, transparent 70%)", animationDelay: "1s" }} />
       </div>
 
-      <div className={`relative z-10 p-4 transition-opacity duration-200 ${animating ? "opacity-0" : "opacity-100"}`}>
+      <div key={current} className={`relative z-10 p-4 transition-all duration-600 ease-in-out ${isSliding ? "opacity-0 scale-95" : "opacity-100 scale-100"}`}>
 
         {/* Badge */}
         {ad.badge && (
@@ -83,8 +89,16 @@ export default function AdBanner({ ads }: { ads: Ad[] }) {
         <div className="flex items-center justify-between px-4 pb-3">
           <div className="flex gap-1">
             {ads.map((_, i) => (
-              <button key={i} onClick={() => setCurrent(i)}
-                className={`rounded-full transition-all ${i === current ? "w-4 h-1.5 bg-white" : "w-1.5 h-1.5 bg-white/30"}`} />
+              <button key={i} onClick={() => {
+                if (i !== current && !isSliding) {
+                  setIsSliding(true);
+                  setTimeout(() => {
+                    setCurrent(i);
+                    setTimeout(() => setIsSliding(false), 50);
+                  }, 600);
+                }
+              }}
+                className={`rounded-full transition-all duration-500 ${i === current ? "w-6 h-1.5 bg-white shadow-lg" : "w-1.5 h-1.5 bg-white/30 hover:bg-white/50"}`} />
             ))}
           </div>
           <div className="flex gap-1">

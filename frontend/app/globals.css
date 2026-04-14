@@ -128,6 +128,25 @@ body {
 ::-webkit-scrollbar-thumb { background: #c7d2fe; border-radius: 3px; }
 .dark ::-webkit-scrollbar-thumb { background: #3730a3; }
 
+/* Shimmer animation for ad banners */
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@keyframes slideInFromRight {
+  0% { transform: translateX(100%); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+.animate-shimmer {
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+.duration-600 {
+  transition-duration: 600ms;
+}
+
 /* Dark mode text overrides */
 .dark .text-gray-900 { color: #f1f5f9; }
 .dark .text-gray-700 { color: #cbd5e1; }

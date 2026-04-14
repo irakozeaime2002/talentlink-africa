@@ -9,6 +9,102 @@ import { fetchPublicAds } from "../../lib/api";
 
 const FILTERS = ["All", "Remote", "Internship", "AI / ML", "Kigali", "Full-time"];
 
+// Compact single-line ad banner for mobile (shows up to 3 ads per banner)
+function CompactAdBanner({ ads }: { ads: Ad[] }) {
+  const [current, setCurrent] = useState(0);
+  const [isSliding, setIsSliding] = useState(false);
+
+  useEffect(() => {
+    if (ads.length <= 1) return;
+    const t = setInterval(() => {
+      setIsSliding(true);
+      setTimeout(() => {
+        setCurrent((prev) => (prev + 1) % ads.length);
+        setTimeout(() => setIsSliding(false), 50);
+      }, 600);
+    }, 5000);
+    return () => clearInterval(t);
+  }, [ads.length]);
+
+  if (ads.length === 0) return null;
+  const ad = ads[current];
+
+  return (
+    <div className="relative rounded-xl overflow-hidden shadow-lg" style={{ background: "linear-gradient(90deg, var(--accent), #6366f1)" }}>
+      {/* Animated background shimmer */}
+      <div className="absolute inset-0 opacity-20 pointer-events-none">
+        <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white to-transparent animate-shimmer" />
+      </div>
+
+      <div className="relative z-10">
+        <div key={current} className={`transition-all duration-300 ease-in-out ${
+          isSliding ? 'opacity-90 scale-[0.98]' : 'opacity-100 scale-100'
+        }`}>
+          <div className="flex items-center gap-3 px-4 py-2.5">
+            <div className="flex-1 min-w-0">
+              <p className="text-white font-bold text-xs truncate">
+                {ad.title}
+              </p>
+              <p className="text-white/80 text-xs truncate">
+                {ad.description}
+              </p>
+            </div>
+            {ad.linkUrl && (
+              <a href={ad.linkUrl} target="_blank" rel="noopener noreferrer"
+                className="shrink-0 bg-white text-xs font-bold px-3 py-1.5 rounded-lg hover:opacity-90 hover:scale-105 active:scale-95 transition-all duration-200 shadow-md"
+                style={{ color: "var(--accent)" }}>
+                {ad.linkLabel}
+              </a>
+            )}
+          </div>
+        </div>
+
+        {ads.length > 1 && (
+          <div className="flex items-center justify-center gap-1.5 pb-2">
+            {ads.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => {
+                  if (i !== current && !isSliding) {
+                    setIsSliding(true);
+                    setTimeout(() => {
+                      setCurrent(i);
+                      setTimeout(() => setIsSliding(false), 50);
+                    }, 600);
+                  }
+                }}
+                className={`rounded-full transition-all duration-500 cursor-pointer ${
+                  i === current ? "w-6 h-1.5 bg-white shadow-lg scale-110" : "w-1.5 h-1.5 bg-white/40 hover:bg-white/60 hover:scale-125"
+                }`}
+                aria-label={`Go to ad ${i + 1}`}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Split ads into groups of 3 for multiple banners
+function MobileAdBanners({ ads }: { ads: Ad[] }) {
+  if (ads.length === 0) return null;
+  
+  // Split ads into chunks of 3
+  const chunks: Ad[][] = [];
+  for (let i = 0; i < ads.length; i += 3) {
+    chunks.push(ads.slice(i, i + 3));
+  }
+
+  return (
+    <div className="space-y-3">
+      {chunks.map((chunk, index) => (
+        <CompactAdBanner key={index} ads={chunk} />
+      ))}
+    </div>
+  );
+}
+
 function useCountdown(deadline?: string) {
   const [timeLeft, setTimeLeft] = useState("");
 
@@ -125,39 +221,55 @@ export default function JobBoardPage() {
       </div>
 
       {/* Main layout: jobs + ad sidebar */}
-      <div className={ads.length > 0 ? "flex gap-5 items-start" : ""}>
-        {/* Job list */}
-        <div className="flex-1 min-w-0">
-          {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="glass-card p-5 animate-pulse">
-                  <div className="h-5 bg-gray-200 dark:bg-white/10 rounded w-2/5 mb-3" />
-                  <div className="h-3 bg-gray-100 dark:bg-white/5 rounded w-1/3 mb-4" />
-                  <div className="h-3 bg-gray-100 dark:bg-white/5 rounded w-full mb-2" />
-                  <div className="h-3 bg-gray-100 dark:bg-white/5 rounded w-4/5" />
-                </div>
-              ))}
+      <div className="space-y-5">
+        {/* Ad banners — mobile: single compact banner with all ads, tablet+: multiple banners (3 ads each) */}
+        {ads.length > 0 && (
+          <>
+            {/* Mobile: single banner with all ads */}
+            <div className="md:hidden">
+              <CompactAdBanner ads={ads} />
             </div>
-          ) : filtered.length === 0 ? (
-            <div className="text-center py-20 text-gray-400">
-              <Search size={40} className="mx-auto mb-3 opacity-20" />
-              <p className="font-medium">No jobs found</p>
-              <p className="text-sm mt-1">Try a different search or filter</p>
+            {/* Tablet+: multiple banners, 3 ads each */}
+            <div className="hidden md:block lg:hidden">
+              <MobileAdBanners ads={ads} />
             </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {filtered.map((job) => <JobCard key={job._id} job={job} />)}
+          </>
+        )}
+
+        <div className={ads.length > 0 ? "flex gap-5 items-start" : ""}>
+          {/* Job list */}
+          <div className="flex-1 min-w-0">
+            {loading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="glass-card p-5 animate-pulse">
+                    <div className="h-5 bg-gray-200 dark:bg-white/10 rounded w-2/5 mb-3" />
+                    <div className="h-3 bg-gray-100 dark:bg-white/5 rounded w-1/3 mb-4" />
+                    <div className="h-3 bg-gray-100 dark:bg-white/5 rounded w-full mb-2" />
+                    <div className="h-3 bg-gray-100 dark:bg-white/5 rounded w-4/5" />
+                  </div>
+                ))}
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="text-center py-20 text-gray-400">
+                <Search size={40} className="mx-auto mb-3 opacity-20" />
+                <p className="font-medium">No jobs found</p>
+                <p className="text-sm mt-1">Try a different search or filter</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {filtered.map((job) => <JobCard key={job._id} job={job} />)}
+              </div>
+            )}
+          </div>
+
+          {/* Ad sidebar — desktop only */}
+          {ads.length > 0 && (
+            <div className="hidden lg:block w-64 shrink-0 sticky top-24">
+              <AdBanner ads={ads} />
             </div>
           )}
         </div>
-
-        {/* Ad sidebar — only when ads exist */}
-        {ads.length > 0 && (
-          <div className="hidden lg:block w-64 shrink-0 sticky top-24">
-            <AdBanner ads={ads} />
-          </div>
-        )}
       </div>
     </div>
   );

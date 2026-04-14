@@ -48,7 +48,9 @@ export default function MyApplicationsPage() {
   const [docFiles, setDocFiles] = useState<Record<string, File>>({});
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
 
+  useEffect(() => { setMounted(true); }, []);
   useEffect(() => { dispatch(loadMyApplications()); }, [dispatch]);
 
   const startEdit = (app: Application) => {
@@ -72,8 +74,9 @@ export default function MyApplicationsPage() {
       const formData = new FormData();
       formData.append("cover_letter", coverLetter);
       formData.append("answers", JSON.stringify(answers));
+      // Append each document with its name as the field name so backend can identify it
       Object.entries(docFiles).forEach(([name, file]) => {
-        formData.append("documents", file, file.name);
+        formData.append(name, file, file.name);
       });
       await updateMyApplication(id, formData);
       toast.success("Application updated!");
@@ -93,6 +96,8 @@ export default function MyApplicationsPage() {
     } catch (err: any) { toast.error(err.message); }
     finally { setDeleting(null); }
   };
+
+  if (!mounted) return null;
 
   if (!user) return (
     <div className="text-center py-24">
@@ -276,13 +281,14 @@ export default function MyApplicationsPage() {
                       if (requiredDocs.length === 0) return null;
                       return (
                         <div className="space-y-3">
-                          <p className="text-sm font-semibold text-gray-700 flex items-center gap-2"><Paperclip size={14} /> Documents</p>
-                          {requiredDocs.map((docName: string) => {
+                          <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2"><Paperclip size={14} /> Documents</p>
+                          {requiredDocs.map((doc: string | { name: string; optional: boolean }) => {
+                            const docName = typeof doc === 'string' ? doc : doc.name;
                             const existing = app.documents?.find((d) => d.name === docName);
                             const newFile = docFiles[docName];
                             return (
                               <div key={docName}>
-                                <label className="block text-xs font-medium text-gray-600 mb-1.5">{docName}</label>
+                                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">{docName}</label>
                                 <label className="flex items-center gap-3 border-2 border-dashed rounded-xl px-4 py-3 cursor-pointer transition"
                                   style={{ borderColor: newFile ? "var(--accent)" : "#e5e7eb", background: newFile ? "var(--accent-light)" : "transparent" }}>
                                   <input type="file" className="hidden" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
@@ -293,7 +299,7 @@ export default function MyApplicationsPage() {
                                   {newFile ? (
                                     <><CheckCircle size={14} style={{ color: "var(--accent)" }} /><span className="text-xs font-medium" style={{ color: "var(--accent)" }}>{newFile.name}</span></>
                                   ) : existing ? (
-                                    <><Paperclip size={14} className="text-gray-400" /><span className="text-xs text-gray-500">{existing.filename} <span className="text-gray-400">(click to replace)</span></span></>
+                                    <><Paperclip size={14} className="text-gray-400" /><span className="text-xs text-gray-500 dark:text-gray-400">{existing.filename} <span className="text-gray-400">(click to replace)</span></span></>
                                   ) : (
                                     <><Upload size={14} className="text-gray-400" /><span className="text-xs text-gray-400">Upload {docName}</span></>
                                   )}

@@ -27,11 +27,11 @@ router.get("/my-jobs-candidates", authenticate, requireRole("recruiter"), getMyJ
 router.get("/my-profile", authenticate, requireRole("applicant"), getMyProfile);
 router.put("/my-profile", authenticate, requireRole("applicant"), updateMyProfile);
 router.post("/my-cv", authenticate, requireRole("applicant"), limitCVUpload, upload.single("cv"), uploadMyCV);
-router.post("/job/:job_id", authenticate, requireRole("applicant"), limitApplications, upload.array("documents", 10), applyToJob);
+router.post("/job/:job_id", authenticate, requireRole("applicant"), limitApplications, upload.any(), applyToJob);
 router.get("/job/:job_id", authenticate, requireRole("recruiter"), getJobApplications);
 router.get("/job/:job_id/candidates", authenticate, requireRole("recruiter"), getJobApplicantCandidates);
 router.get("/my", authenticate, requireRole("applicant"), getMyApplications);
-router.patch("/:id", authenticate, requireRole("applicant"), upload.array("documents", 10), updateMyApplication);
+router.patch("/:id", authenticate, requireRole("applicant"), upload.any(), updateMyApplication);
 router.delete("/:id", authenticate, requireRole("applicant"), deleteMyApplication);
 router.patch("/:id/status", authenticate, requireRole("recruiter"), updateApplicationStatus);
 router.get("/:id", authenticate, getApplication);
