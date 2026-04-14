@@ -228,9 +228,9 @@ export default function JobForm({ initial = {}, onSubmit, loading, onDirty }: Pr
         <div className="flex gap-2 mb-3">
           <input className={INPUT} value={docInput}
             onChange={(e) => setDocInput(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); if (docInput.trim()) { update((f) => ({ ...f, required_documents: [...f.required_documents, { name: docInput.trim(), optional: false }] })); setDocInput(""); } } }}
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); if (docInput.trim()) { update((f) => ({ ...f, required_documents: [...(f.required_documents || []).map(d => typeof d === 'string' ? { name: d, optional: false } : d), { name: docInput.trim(), optional: false }] as { name: string; optional: boolean }[] })); setDocInput(""); } } }}
             placeholder="e.g. Resume, Portfolio, Certificate — press Enter" />
-          <button type="button" onClick={() => { if (docInput.trim()) { update((f) => ({ ...f, required_documents: [...f.required_documents, { name: docInput.trim(), optional: false }] })); setDocInput(""); } }}
+          <button type="button" onClick={() => { if (docInput.trim()) { update((f) => ({ ...f, required_documents: [...(f.required_documents || []).map(d => typeof d === 'string' ? { name: d, optional: false } : d), { name: docInput.trim(), optional: false }] as { name: string; optional: boolean }[] })); setDocInput(""); } }}
             className="px-4 py-2 rounded-xl text-white btn-glow shrink-0">
             <Plus size={16} />
           </button>
@@ -256,8 +256,8 @@ export default function JobForm({ initial = {}, onSubmit, loading, onDirty }: Pr
                               const current = typeof item === 'string' ? { name: item, optional: false } : item;
                               return { ...current, optional: e.target.checked };
                             }
-                            return item;
-                          })
+                            return typeof item === 'string' ? { name: item, optional: false } : item;
+                          }) as { name: string; optional: boolean }[]
                         }));
                       }}
                     />
