@@ -115,7 +115,7 @@ export default function RegisterPage() {
                 <input
                   required value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="w-full border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:border-transparent transition"
+                  className="w-full border border-gray-200 dark:border-gray-700 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:border-transparent transition bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                   placeholder="John Doe"
                 />
               </div>
@@ -127,7 +127,7 @@ export default function RegisterPage() {
                 <input
                   type="email" required value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  className="w-full border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:border-transparent transition"
+                  className="w-full border border-gray-200 dark:border-gray-700 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:border-transparent transition bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                   placeholder="you@example.com"
                 />
               </div>
@@ -139,7 +139,7 @@ export default function RegisterPage() {
                 <input
                   type="password" required minLength={6} value={form.password}
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
-                  className="w-full border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:border-transparent transition"
+                  className="w-full border border-gray-200 dark:border-gray-700 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:border-transparent transition bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                   placeholder="Min 6 characters"
                 />
               </div>

@@ -93,7 +93,7 @@ export default function LoginPage() {
                 <input
                   type="email" required value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  className="w-full border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:border-transparent transition"
+                  className="w-full border border-gray-200 dark:border-gray-700 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:border-transparent transition bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                   style={{ "--tw-ring-color": "var(--accent)" } as any}
                   placeholder="you@example.com"
                 />
@@ -106,7 +106,7 @@ export default function LoginPage() {
                 <input
                   type="password" required value={form.password}
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
-                  className="w-full border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:border-transparent transition"
+                  className="w-full border border-gray-200 dark:border-gray-700 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:border-transparent transition bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                   placeholder="••••••••"
                 />
               </div>
