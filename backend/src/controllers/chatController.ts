@@ -111,6 +111,23 @@ export const chat = async (req: Request, res: Response, next: NextFunction): Pro
 
     if (!message?.trim()) { res.status(400).json({ error: "Message is required" }); return; }
 
+    // Get user role from JWT token (if authenticated)
+    const userRole = (req as any).user?.role || "guest";
+    
+    // Build role-specific context
+    let roleContext = "";
+    if (userRole === "recruiter") {
+      roleContext = "\n\n=== CURRENT USER CONTEXT ===\nYou are speaking with a RECRUITER. Focus your responses on:\n- How to create and manage jobs\n- How to import candidates (CSV/PDF)\n- How to run AI screening and view results\n- How to manage applications and update statuses\n- How to view screening history\n- Recruiter dashboard features\n\nDo NOT provide applicant-specific guidance unless explicitly asked.";
+    } else if (userRole === "applicant") {
+      roleContext = "\n\n=== CURRENT USER CONTEXT ===\nYou are speaking with an APPLICANT (Job Seeker). Focus your responses on:\n- How to browse and search for jobs\n- How to build a complete professional profile\n- How to submit applications with all required information\n- How to track application status\n- How to edit applications before deadline\n- Tips for making their profile stand out\n\nDo NOT provide recruiter-specific guidance (like AI screening, candidate management) unless explicitly asked.";
+    } else if (userRole === "admin") {
+      roleContext = "\n\n=== CURRENT USER CONTEXT ===\nYou are speaking with an ADMIN. Focus your responses on:\n- Platform management and oversight\n- User management\n- System configuration\n- Analytics and reporting\n\nProvide high-level guidance appropriate for administrative tasks.";
+    } else {
+      roleContext = "\n\n=== CURRENT USER CONTEXT ===\nYou are speaking with a GUEST (not logged in). Focus your responses on:\n- General platform overview\n- How to browse public job board\n- Benefits of creating an account (as recruiter or applicant)\n- Registration process\n\nEncourage them to sign up to access full features.";
+    }
+
+    const contextualSystemPrompt = SYSTEM_PROMPT + roleContext;
+
     let lastError: Error = new Error("No models available");
 
     for (let attempt = 0; attempt < MODELS.length; attempt++) {
@@ -119,7 +136,7 @@ export const chat = async (req: Request, res: Response, next: NextFunction): Pro
         const model = genAI.getGenerativeModel({ model: modelName, generationConfig: { temperature: 0.4 } });
         const chatSession = model.startChat({
           history: [
-            { role: "user", parts: [{ text: SYSTEM_PROMPT }] },
+            { role: "user", parts: [{ text: contextualSystemPrompt }] },
             { role: "model", parts: [{ text: "Understood! I'm TalentLink Africa AI Assistant. How can I help you today?" }] },
             ...history,
           ],
