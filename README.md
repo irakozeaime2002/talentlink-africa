@@ -231,6 +231,15 @@ The application provides a complete recruiter-facing interface that supports:
 - **Edit Applications** — Edit submitted applications before the job deadline while status is still "pending"
 - **My Applications** — Track all submitted applications and their current status in one place
 
+### For Admins
+- **User Management** — View, edit, and manage all users (recruiters and applicants) with role assignment
+- **Job Management** — Oversee all job listings across the platform with full CRUD operations
+- **Application Oversight** — Monitor all applications and their statuses across all jobs
+- **Subscription Management** — Manage user subscriptions and plan assignments
+- **Plan Configuration** — Configure subscription plans (Free, Pro, Enterprise) with custom limits and features
+- **Advertisement Management** — Create, edit, and manage platform advertisements with targeting options
+- **Platform Analytics** — Access comprehensive platform statistics and usage metrics
+
 ### AI Screening Engine
 - **Gemini AI Integration** — Uses `gemini-2.5-flash-lite` as primary model with automatic fallback through 5 models on quota/availability errors
 - **Multi-model Fallback** — `gemini-2.5-flash-lite` → `gemini-flash-latest` → `gemini-pro-latest` → `gemini-3-flash-preview` → `gemini-2.0-flash-lite`
@@ -260,7 +269,7 @@ The application provides a complete recruiter-facing interface that supports:
 - **Dark Mode** — Toggle between light and dark themes, persisted in localStorage
 - **Accent Color Themes** — 6 accent color options (Default, Indigo, Violet, Blue, Green, Rose) applied globally via CSS variables
 - **Responsive Design** — Fully responsive across mobile, tablet, and desktop
-- **Role-based Access** — Recruiter and Applicant roles with separate dashboards and protected routes
+- **Role-based Access** — Recruiter, Applicant, and Admin roles with separate dashboards and protected routes
 - **JWT Authentication** — 7-day token expiry with Axios interceptor for automatic header injection
 - **Forgot Password** — Email-based password reset via Resend with 1-hour expiry token
 - **Seed Data** — Load 10 Umurava dummy candidate profiles instantly via `/api/seed/candidates`
@@ -702,6 +711,41 @@ NEXT_PUBLIC_API_URL=http://localhost:5000/api
 | Method | Endpoint | Description |
 |---|---|---|
 | POST | /api/chat | Send message to AI assistant |
+
+### Admin
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | /api/admin/users | Admin | List all users |
+| GET | /api/admin/users/:id | Admin | Get user details |
+| PUT | /api/admin/users/:id | Admin | Update user |
+| DELETE | /api/admin/users/:id | Admin | Delete user |
+| GET | /api/admin/jobs | Admin | List all jobs |
+| GET | /api/admin/applications | Admin | List all applications |
+| GET | /api/admin/stats | Admin | Platform statistics |
+
+### Payments
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| POST | /api/payments/initiate | Recruiter | Initiate payment |
+| GET | /api/payments/verify/:id | Recruiter | Verify payment status |
+| GET | /api/payments/history | Recruiter | Payment history |
+
+### Plans
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | /api/plans | None | List all plans |
+| GET | /api/plans/:id | None | Get plan details |
+| POST | /api/plans | Admin | Create plan |
+| PUT | /api/plans/:id | Admin | Update plan |
+| DELETE | /api/plans/:id | Admin | Delete plan |
+
+### Advertisements
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | /api/ads | None | Get active ads |
+| POST | /api/ads | Admin | Create advertisement |
+| PUT | /api/ads/:id | Admin | Update advertisement |
+| DELETE | /api/ads/:id | Admin | Delete advertisement |
 
 ### Seed & Stats
 | Method | Endpoint | Description |
