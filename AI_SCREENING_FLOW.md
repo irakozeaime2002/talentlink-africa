@@ -149,9 +149,9 @@ match_score = (skills × 0.4) + (experience × 0.3) + (projects × 0.2) + (educa
 ```javascript
 {
   strengths: [
-    "5 years Node.js experience at Microsoft (2019-2024)",
-    "Built AI recruitment system using Gemini API and Next.js",
-    "Bachelor's in Computer Science from MIT with AWS certification"
+    "5 years Node.js experience at Microsoft (from work history)",
+    "Built AI recruitment system using Gemini API and Next.js (from projects)",
+    "Bachelor's in Computer Science from MIT with AWS certification (from education and certifications)"
   ],
   gaps: [
     "Missing required skill: Docker",
@@ -160,6 +160,12 @@ match_score = (skills × 0.4) + (experience × 0.3) + (projects × 0.2) + (educa
   reason: "Strong mid-level candidate with 5 years relevant backend experience. Node.js and AWS skills match requirements perfectly, demonstrated through 3 production projects. Main gap is missing Docker experience which is required for this role."
 }
 ```
+
+**Source Attribution Format:**
+- Uses natural, readable source names
+- Examples: "from languages", "from work history", "from education", "from skills", "from certifications", "from cover letter", "from resume", "from projects"
+- Avoids technical field names like `languages[]`, `experience[]`, `skills[]`
+- Makes reports professional and user-friendly
 
 ---
 
@@ -257,7 +263,7 @@ John Doe,john@email.com,Node.js;PostgreSQL;AWS,5,Computer Science
 - **Final: (71.67×0.4) + (90×0.3) + (10×0.2) + (75×0.1) = 66.17**
 
 **AI Insights:**
-- Strengths: "5 years experience with Node.js and PostgreSQL", "AWS experience (preferred skill)", "Computer Science education"
+- Strengths: "5 years experience with Node.js and PostgreSQL (from resume)", "AWS experience - preferred skill (from skills)", "Computer Science education (from bio)"
 - Gaps: "Missing required skill: Docker"
 - Reason: "Mid-level candidate with 5 years relevant backend experience. Node.js and PostgreSQL skills match requirements. Missing Docker which is required."
 
@@ -291,7 +297,7 @@ Master's degree in Computer Science from Stanford.
 - **Final: (100×0.4) + (80×0.3) + (85×0.2) + (95×0.1) = 80.5**
 
 **AI Insights:**
-- Strengths: "8 years backend experience with Node.js, PostgreSQL, and Docker at Amazon", "Led 5 microservices projects using AWS and Kubernetes", "Master's in Computer Science from Stanford"
+- Strengths: "8 years backend experience with Node.js, PostgreSQL, and Docker at Amazon (from resume)", "Led 5 microservices projects using AWS and Kubernetes (from projects)", "Master's in Computer Science from Stanford (from education)"
 - Gaps: []
 - Reason: "Excellent senior-level candidate with 8 years relevant experience. All required skills present (Node.js, PostgreSQL, Docker) plus both preferred skills (AWS, Kubernetes). Strong project portfolio and advanced education."
 
