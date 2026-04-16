@@ -59,11 +59,21 @@ export default function JobDetailPage() {
     setLoadingCandidates(true);
     
     api.fetchJobApplicantCandidates(id, pageToLoad, 50)
-      .then((response) => { 
+      .then((response) => {
+        // Validate response structure
+        if (!response || !response.candidates || !Array.isArray(response.candidates)) {
+          console.error('Invalid response structure:', response);
+          setApplicantCandidates([]);
+          setSelectedIds([]);
+          setHasMoreCandidates(false);
+          setCurrentPage(1);
+          return;
+        }
+        
         const newCandidates = loadMore ? [...applicantCandidates, ...response.candidates] : response.candidates;
         setApplicantCandidates(newCandidates); 
         setSelectedIds(newCandidates.map((c) => c._id));
-        setHasMoreCandidates(response.pagination.hasMore);
+        setHasMoreCandidates(response.pagination?.hasMore || false);
         setCurrentPage(pageToLoad);
         
         // Only cache first page
@@ -72,12 +82,16 @@ export default function JobDetailPage() {
             data: newCandidates, 
             timestamp: Date.now(),
             page: pageToLoad,
-            hasMore: response.pagination.hasMore
+            hasMore: response.pagination?.hasMore || false
           });
         }
       })
       .catch((err) => {
         console.error('Failed to load candidates:', err);
+        // Reset state on error
+        setApplicantCandidates([]);
+        setSelectedIds([]);
+        setHasMoreCandidates(false);
         // Don't show error toast on initial load, only on manual refresh
         if (forceRefresh) {
           toast.error('Failed to load candidates');
@@ -111,20 +125,34 @@ export default function JobDetailPage() {
       }
       
       const response = await api.fetchJobApplicantCandidates(id, 1, 50);
-      if (response.candidates.length === 0) { toast.error("No candidate profiles found yet"); return; }
+      
+      // Validate response structure
+      if (!response || !response.candidates || !Array.isArray(response.candidates)) {
+        toast.error("Invalid response from server");
+        return;
+      }
+      
+      if (response.candidates.length === 0) { 
+        toast.error("No candidate profiles found yet"); 
+        return; 
+      }
+      
       setApplicantCandidates(response.candidates);
       setSelectedIds(response.candidates.map((c) => c._id));
-      setHasMoreCandidates(response.pagination.hasMore);
+      setHasMoreCandidates(response.pagination?.hasMore || false);
       setCurrentPage(1);
       setCandidatesCache({ 
         data: response.candidates, 
         timestamp: Date.now(),
         page: 1,
-        hasMore: response.pagination.hasMore
+        hasMore: response.pagination?.hasMore || false
       });
       setTab("screen");
       toast.success(`${response.candidates.length} applicant${response.candidates.length !== 1 ? "s" : ""} loaded`);
-    } catch { toast.error("Failed to load applicant profiles"); }
+    } catch (err) { 
+      console.error('Failed to load applicant profiles:', err);
+      toast.error("Failed to load applicant profiles"); 
+    }
   };
 
   const handleScreen = async () => {
