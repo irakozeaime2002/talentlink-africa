@@ -749,7 +749,6 @@ NEXT_PUBLIC_API_URL=http://localhost:5000/api
 ### Seed & Stats
 | Method | Endpoint | Description |
 |---|---|---|
-| POST | /api/seed/candidates | Load 10 Umurava dummy profiles |
 | GET | /api/seed/stats | Platform statistics |
 
 ---
