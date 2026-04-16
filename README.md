@@ -272,7 +272,6 @@ The application provides a complete recruiter-facing interface that supports:
 - **Role-based Access** — Recruiter, Applicant, and Admin roles with separate dashboards and protected routes
 - **JWT Authentication** — 7-day token expiry with Axios interceptor for automatic header injection
 - **Forgot Password** — Email-based password reset via Resend with 1-hour expiry token
-- **Seed Data** — Load 10 Umurava dummy candidate profiles instantly via `/api/seed/candidates`
 - **Platform Stats** — Live stats endpoint at `/api/seed/stats`
 
 ### Pages
