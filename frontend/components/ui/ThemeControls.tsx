@@ -47,9 +47,10 @@ export default function AIChatWidget() {
       }));
       const { reply } = await sendChatMessage(text, history);
       setMessages((prev) => [...prev, { role: "model", text: reply }]);
-    } catch {
-      setMessages((prev) => [...prev, { role: "model", text: "I'm a bit overwhelmed right now, Give me a few seconds and I'll be right back with you!" }]);
-      await new Promise((r) => setTimeout(r, 3000));
+    } catch (err: any) {
+      console.error("[Chat Widget] Error:", err);
+      const errorMsg = err.message || "I'm having trouble connecting right now. Please try again in a moment.";
+      setMessages((prev) => [...prev, { role: "model", text: errorMsg }]);
     } finally {
       setLoading(false);
     }

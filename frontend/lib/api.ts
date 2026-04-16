@@ -85,9 +85,23 @@ export const uploadResumes = (files: File[], jobId?: string) => {
 export const runScreening = (job_id: string, candidate_ids: string[], top_n = 20) =>
   api.post<ScreeningResult>("/screening", { job_id, candidate_ids, top_n }).then((r) => r.data);
 export const fetchScreeningResults = (job_id: string) =>
-  api.get<ScreeningResult[]>(`/screening/job/${job_id}`).then((r) => r.data);
+  api.get<ScreeningResult[]>(`/screening/job/${job_id}`, {
+    headers: {
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    },
+    params: { _t: Date.now() } // Cache-busting timestamp
+  }).then((r) => r.data);
 export const fetchScreeningResult = (id: string) =>
-  api.get<ScreeningResult>(`/screening/${id}`).then((r) => r.data);
+  api.get<ScreeningResult>(`/screening/${id}`, {
+    headers: {
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    },
+    params: { _t: Date.now() }
+  }).then((r) => r.data);
 export const deleteScreeningResult = (id: string) =>
   api.delete(`/screening/${id}`).then((r) => r.data);
 
@@ -111,10 +125,10 @@ export const applyToJob = (job_id: string, data: Partial<Application> | FormData
   api.post<Application>(`/applications/job/${job_id}`, data, {
     headers: data instanceof FormData ? { "Content-Type": "multipart/form-data" } : {},
   }).then((r) => r.data);
-export const fetchJobApplicantCandidates = (job_id: string) =>
-  api.get<Candidate[]>(`/applications/job/${job_id}/candidates`).then((r) => r.data);
-export const fetchJobApplications = (job_id: string) =>
-  api.get<Application[]>(`/applications/job/${job_id}`).then((r) => r.data);
+export const fetchJobApplicantCandidates = (job_id: string, page = 1, limit = 50) =>
+  api.get<{ candidates: Candidate[]; pagination: { page: number; limit: number; total: number; pages: number; hasMore: boolean } }>(`/applications/job/${job_id}/candidates?page=${page}&limit=${limit}`).then((r) => r.data);
+export const fetchJobApplications = (job_id: string, page = 1, limit = 50) =>
+  api.get<{ applications: Application[]; pagination: { page: number; limit: number; total: number; pages: number; hasMore: boolean } }>(`/applications/job/${job_id}?page=${page}&limit=${limit}`).then((r) => r.data);
 export const fetchMyApplications = () =>
   api.get<Application[]>("/applications/my").then((r) => r.data);
 export const updateMyApplication = (id: string, data: { cover_letter?: string; answers?: { question: string; answer: string }[] } | FormData) =>

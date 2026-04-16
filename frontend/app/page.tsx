@@ -39,13 +39,13 @@ export default function DashboardPage() {
     { label: "Total Jobs", value: safeJobs.length, icon: Briefcase, trend: "+2 this week", href: "/jobs" },
     { label: "Open Jobs", value: openJobs.length, icon: TrendingUp, trend: "Active listings", href: "/jobs" },
     { label: "Candidates", value: candidateCount, icon: Users, trend: "In your pool", href: "/candidates" },
-    { label: "Ready to Screen", value: openJobs.length, icon: Zap, trend: "Jobs awaiting AI", href: "/jobs" },
+    { label: "Ready to Screen", value: openJobs.length, icon: Zap, trend: "Jobs awaiting review", href: "/jobs" },
   ];
 
   const actions = [
-    { href: "/jobs/new", icon: Plus, title: "Create New Job", desc: "Post a job with AI-powered screening" },
+    { href: "/jobs/new", icon: Plus, title: "Create New Job", desc: "Post a job with smart screening" },
     { href: "/candidates", icon: Users, title: "Manage Candidates", desc: "View, import, or upload candidate profiles" },
-    { href: "/jobs", icon: Brain, title: "Run AI Screening", desc: "Select a job and trigger AI screening" },
+    { href: "/jobs", icon: Brain, title: "Run Screen Candidates", desc: "Select a job and screen applicants" },
   ];
 
   return (

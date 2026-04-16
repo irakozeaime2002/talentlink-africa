@@ -12,7 +12,7 @@ const contacts = [
 
 const faqs = [
   { q: "Is TalentLink Africa free to use?", a: "Yes, you can create an account and start posting jobs or applying for free. Premium features are coming soon." },
-  { q: "How does the AI screening work?", a: "Recruiters trigger screening after receiving applications. The system evaluates candidates and produces a ranked shortlist with detailed reasoning." },
+  { q: "How does the screening work?", a: "Recruiters trigger screening after receiving applications. The system evaluates candidates and produces a ranked shortlist with detailed reasoning." },
   { q: "Can applicants see their scores?", a: "No. Applicants only see their application status (pending, reviewed, shortlisted, rejected). Scoring details are only visible to recruiters." },
   { q: "What file formats are supported for resume upload?", a: "We support PDF resumes and CSV/Excel files for bulk candidate imports." },
 ];

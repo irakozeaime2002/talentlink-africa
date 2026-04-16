@@ -107,19 +107,45 @@ export const applyToJob = async (req: Request, res: Response, next: NextFunction
 
 export const getJobApplications = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 50;
+    const skip = (page - 1) * limit;
+    
     const apps = await Application.find({ job_id: req.params.job_id })
-      .populate("applicant_id", "name email phone")
-      .sort({ createdAt: -1 });
-    res.json(apps);
+      .populate("applicant_id", "name email phone date_of_birth gender nationality residence")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+    
+    const total = await Application.countDocuments({ job_id: req.params.job_id });
+    
+    res.json({
+      applications: apps,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+        hasMore: page * limit < total
+      }
+    });
   } catch (err) { next(err); }
 };
 
 export const getJobApplicantCandidates = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const job_id = req.params.job_id;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 50;
+    const skip = (page - 1) * limit;
 
     // Get applicants who applied via the board
-    const apps = await Application.find({ job_id }).populate("applicant_id", "email name");
+    const apps = await Application.find({ job_id })
+      .populate("applicant_id", "email name")
+      .skip(skip)
+      .limit(limit);
+    
+    const totalApps = await Application.countDocuments({ job_id });
     const emails = apps.map((a) => (a.applicant_id as any)?.email).filter(Boolean);
     const applicantCandidates = emails.length > 0 ? await Candidate.find({ email: { $in: emails } }) : [];
 
@@ -138,8 +164,11 @@ export const getJobApplicantCandidates = async (req: Request, res: Response, nex
       }
     }
 
-    // Also get CSV/resume candidates uploaded directly for this job
-    const importedCandidates = await Candidate.find({ job_id, source: { $in: ["csv", "resume"] } });
+    // Also get CSV/resume candidates uploaded directly for this job (with pagination)
+    const importedCandidates = await Candidate.find({ job_id, source: { $in: ["csv", "resume"] } })
+      .skip(skip)
+      .limit(limit);
+    const totalImported = await Candidate.countDocuments({ job_id, source: { $in: ["csv", "resume"] } });
 
     // Merge, deduplicate by _id
     const all = [...applicantCandidates];
@@ -147,7 +176,16 @@ export const getJobApplicantCandidates = async (req: Request, res: Response, nex
       if (!all.find((x) => x._id.toString() === c._id.toString())) all.push(c);
     }
 
-    res.json(all);
+    res.json({
+      candidates: all,
+      pagination: {
+        page,
+        limit,
+        total: totalApps + totalImported,
+        pages: Math.ceil((totalApps + totalImported) / limit),
+        hasMore: page * limit < (totalApps + totalImported)
+      }
+    });
   } catch (err) { next(err); }
 };
 
@@ -300,14 +338,37 @@ export const getMyJobsCandidates = async (req: Request, res: Response, next: Nex
   } catch (err) { next(err); }
 };
 
+/**
+ * Get applicant's User record for recruiters
+ * Returns all non-sensitive user information:
+ * - Personal: name, email, phone, date_of_birth, gender, nationality, residence, national_id, father_name, mother_name
+ * - Account: role, createdAt
+ * Excludes sensitive information:
+ * - Security: password, resetToken, resetTokenExpiry
+ * - Billing: plan, planExpiresAt, screeningsUsed, screeningsResetAt
+ */
 export const getApplicantUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const user = await User.findById(req.params.applicant_id).select("-password -resetToken -resetTokenExpiry");
+    // Exclude only sensitive fields: password, reset tokens, plan/billing info
+    const user = await User.findById(req.params.applicant_id).select(
+      "-password -resetToken -resetTokenExpiry -plan -planExpiresAt -screeningsUsed -screeningsResetAt"
+    );
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
     res.json(user);
   } catch (err) { next(err); }
 };
 
+/**
+ * Get applicant's Candidate profile for recruiters
+ * Returns complete professional profile including:
+ * - Basic: firstName, lastName, name, email, headline, bio, location
+ * - Skills: skills[], languages[]
+ * - Experience: experience[], projects[], certifications[]
+ * - Education: education[]
+ * - Availability: availability{}
+ * - Social: socialLinks{}
+ * - Documents: cv_filename, cv_data
+ */
 export const getApplicantProfile = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const user = await User.findById(req.params.applicant_id).select("email name");
@@ -320,7 +381,7 @@ export const getApplicantProfile = async (req: Request, res: Response, next: Nex
 export const getApplication = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const app = await Application.findById(req.params.id)
-      .populate("applicant_id", "name email")
+      .populate("applicant_id", "name email phone date_of_birth gender nationality residence father_name mother_name national_id")
       .populate("job_id", "title");
     if (!app) { res.status(404).json({ error: "Not found" }); return; }
     res.json(app);

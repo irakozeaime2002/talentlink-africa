@@ -71,6 +71,8 @@ export interface ScoreBreakdown {
   experience: number;
   education: number;
   projects: number;
+  documents?: number;
+  answers?: number;
 }
 
 export interface RankedCandidate {
@@ -98,13 +100,19 @@ export interface ScreeningResult {
   createdAt: string;
 }
 
+/**
+ * User interface
+ * When fetched by recruiters viewing applicant profiles:
+ * - Includes: name, email, role, phone, date_of_birth, gender, nationality, residence, father_name, mother_name, national_id
+ * - Excludes: password, resetToken, resetTokenExpiry, plan, planExpiresAt, screeningsUsed, screeningsResetAt
+ */
 export interface User {
   _id: string;
   name: string;
   email: string;
   role: "recruiter" | "applicant" | "admin";
-  plan?: "free" | "pro" | "enterprise";
-  planExpiresAt?: string;
+  plan?: "free" | "pro" | "enterprise"; // Only available for own profile, not when viewing applicants
+  planExpiresAt?: string; // Only available for own profile
   phone?: string;
   date_of_birth?: string;
   gender?: string;
@@ -113,6 +121,7 @@ export interface User {
   father_name?: string;
   mother_name?: string;
   national_id?: string;
+  createdAt?: string;
 }
 
 export interface Application {

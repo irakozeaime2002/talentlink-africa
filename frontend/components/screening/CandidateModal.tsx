@@ -80,6 +80,12 @@ export default function CandidateModal({ candidate, onClose }: Props) {
             <ScoreBar label="Experience (30%)" value={candidate.score_breakdown.experience} />
             <ScoreBar label="Projects (20%)" value={candidate.score_breakdown.projects} />
             <ScoreBar label="Education (10%)" value={candidate.score_breakdown.education} />
+            {candidate.score_breakdown.documents !== undefined && (
+              <ScoreBar label="Documents Quality" value={candidate.score_breakdown.documents} />
+            )}
+            {candidate.score_breakdown.answers !== undefined && (
+              <ScoreBar label="Application Answers" value={candidate.score_breakdown.answers} />
+            )}
           </div>
 
           {/* Strengths */}

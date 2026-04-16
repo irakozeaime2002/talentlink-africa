@@ -58,12 +58,12 @@ export default function LoginPage() {
                 is waiting
               </span>
             </h2>
-            <p className="text-white/90 text-sm leading-relaxed">{APP_TAGLINE}</p>
+            <p className="text-white/90 text-sm leading-relaxed">Smart talent screening built for Africa</p>
           </div>
 
           <div className="relative z-10 space-y-3">
             {[
-              { icon: <Zap size={14} />, label: "Smart AI screening" },
+              { icon: <Zap size={14} />, label: "Smart screening" },
               { icon: <BarChart2 size={14} />, label: "Instant skill matching" },
               { icon: <Users size={14} />, label: "Transparent scoring" },
             ].map(({ icon, label }) => (

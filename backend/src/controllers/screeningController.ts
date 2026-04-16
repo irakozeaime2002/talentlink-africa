@@ -162,18 +162,21 @@ export const runScreening = async (req: Request, res: Response, next: NextFuncti
         name: c.name,
         email: c.email,
         skills: c.skills,
+        languages: c.languages || [], // CRITICAL: Include languages for language requirement matching
         education: c.education,
         experience: c.experience,
         projects: c.projects,
         certifications: c.certifications,
         bio: c.bio?.slice(0, 1000), // Limit bio to 1000 chars
+        headline: c.headline, // Professional tagline
+        location: c.location, // Current location
         ...(cvText ? { cv_text: cvText } : {}),
         ...(docTexts ? { attached_documents: docTexts } : {}),
         ...(appData?.cover_letter ? { cover_letter: appData.cover_letter } : {}),
         ...(appData?.answers?.length ? { application_answers: appData.answers } : {}),
       };
       
-      console.log(`[Screening] Candidate ${c.name}: skills=${c.skills.length}, exp=${c.experience.length}, edu=${c.education.length}, bio=${c.bio?.length || 0}`);
+      console.log(`[Screening] Candidate ${c.name}: skills=${c.skills.length}, languages=${(c.languages || []).length}, exp=${c.experience.length}, edu=${c.education.length}, bio=${c.bio?.length || 0}`);
       
       return input;
     });
@@ -211,17 +214,69 @@ export const deleteScreeningResult = async (req: Request, res: Response, next: N
 
 export const getScreeningResults = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
+    // Set no-cache headers to ensure fresh data
+    res.set({
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    });
+    
     const results = await ScreeningResult.find({ job_id: req.params.job_id })
-      .sort({ createdAt: -1 })
-      .populate("job_id", "title");
-    res.json(results);
+      .sort({ createdAt: -1 });
+    
+    // Fetch current job details to replace stored job_summary
+    const job = await Job.findById(req.params.job_id);
+    if (job) {
+      const currentJobSummary = {
+        role: job.title,
+        key_requirements: [],
+        must_have_skills: job.required_skills,
+        preferred_skills: job.preferred_skills,
+      };
+      
+      // Replace job_summary with current job details
+      const updatedResults = results.map(r => ({
+        ...r.toObject(),
+        job_summary: currentJobSummary,
+      }));
+      
+      res.json(updatedResults);
+    } else {
+      res.json(results);
+    }
   } catch (err) { next(err); }
 };
 
 export const getScreeningResult = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const result = await ScreeningResult.findById(req.params.id).populate("job_id", "title");
+    // Set no-cache headers to ensure fresh data
+    res.set({
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    });
+    
+    const result = await ScreeningResult.findById(req.params.id);
     if (!result) { res.status(404).json({ error: "Result not found" }); return; }
-    res.json(result);
+    
+    // Fetch current job details to replace stored job_summary
+    const job = await Job.findById(result.job_id);
+    if (job) {
+      const currentJobSummary = {
+        role: job.title,
+        key_requirements: [],
+        must_have_skills: job.required_skills,
+        preferred_skills: job.preferred_skills,
+      };
+      
+      const updatedResult = {
+        ...result.toObject(),
+        job_summary: currentJobSummary,
+      };
+      
+      res.json(updatedResult);
+    } else {
+      res.json(result);
+    }
   } catch (err) { next(err); }
 };

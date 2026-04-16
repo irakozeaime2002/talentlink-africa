@@ -20,13 +20,13 @@ export default function PublicHomePage() {
           style={{ background: "radial-gradient(circle, #fff, transparent 70%)" }} />
         <div className="relative z-10 max-w-3xl mx-auto">
           <div className="inline-flex items-center gap-2 bg-white/10 text-white/90 text-xs font-semibold px-4 py-2 rounded-full mb-6 border border-white/20 backdrop-blur-sm">
-            <Sparkles size={13} className="text-yellow-300" /> AI-powered · Built for Africa
+            <Sparkles size={13} className="text-yellow-300" /> Smart Screening · Built for Africa
           </div>
           <h1 className="text-5xl md:text-6xl font-extrabold text-white mb-5 leading-tight">
             🌍 TalentLink <span className="bg-gradient-to-r from-white/80 to-white/50 bg-clip-text text-transparent">Africa</span>
           </h1>
           <p className="text-white/80 text-lg mb-10 max-w-xl mx-auto leading-relaxed">
-            Connecting Africa's best talent with the right opportunities — powered by AI, driven by humans.
+            Connecting Africa's best talent with the right opportunities — smart screening, driven by humans.
           </p>
           <div className="flex gap-3 justify-center flex-wrap">
             <Link href={ctaHref} className="bg-white font-bold px-8 py-3.5 rounded-xl hover:opacity-90 transition shadow-lg hover:scale-105 duration-200 flex items-center gap-2" style={{ color: "var(--accent)" }}>
@@ -47,11 +47,11 @@ export default function PublicHomePage() {
       {/* Features */}
       <div className="text-center">
         <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white mb-3">Everything You Need to Hire Smarter</h2>
-        <p className="text-gray-500 dark:text-gray-400 mb-10 max-w-xl mx-auto">From job posting to AI-ranked shortlists — all in one platform.</p>
+        <p className="text-gray-500 dark:text-gray-400 mb-10 max-w-xl mx-auto">From job posting to ranked shortlists — all in one platform.</p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
           {[
             { icon: Briefcase, title: "Post & Manage Jobs", desc: "Create listings with custom requirements, questions, deadlines, and salary in RWF." },
-            { icon: Brain, title: "AI Screening", desc: "AI ranks candidates by skills, experience, projects & education with full reasoning." },
+            { icon: Brain, title: "Smart Screening", desc: "Intelligent ranking of candidates by skills, experience, projects & education with full reasoning." },
             { icon: Users, title: "Ranked Shortlists", desc: "Get Top 10 or 20 candidates with strengths, gaps, and hiring recommendations." },
           ].map(({ icon: Icon, title, desc }) => (
             <div key={title} className="glass-card p-7 text-left group">
@@ -72,7 +72,7 @@ export default function PublicHomePage() {
           <div>
             <p className="font-bold mb-4 text-lg" style={{ color: "var(--accent)" }}>For Recruiters</p>
             <ul className="space-y-3">
-              {["Create a job with skills, experience level & questions", "Receive applications from qualified candidates", "Click 'Run AI Screening' to rank all applicants", "Review ranked shortlist with AI reasoning per candidate", "Make your final hiring decision"].map((step, i) => (
+              {["Create a job with skills, experience level & questions", "Receive applications from qualified candidates", "Click 'Screen Candidates' to rank all applicants", "Review ranked shortlist with detailed reasoning per candidate", "Make your final hiring decision"].map((step, i) => (
                 <li key={i} className="flex items-start gap-3 text-sm text-gray-600 dark:text-gray-300">
                   <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 mt-0.5 accent-icon-bg">{i + 1}</span>
                   {step}
@@ -99,7 +99,7 @@ export default function PublicHomePage() {
         <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white text-center mb-10">Trusted Across Africa</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {[
-            { name: "Amina K.", role: "HR Manager, Nairobi", text: "TalentLink Africa cut our screening time from 3 days to 30 minutes. The AI reasoning is incredibly transparent." },
+            { name: "Amina K.", role: "HR Manager, Nairobi", text: "TalentLink Africa cut our screening time from 3 days to 30 minutes. The intelligent ranking is incredibly transparent." },
             { name: "Jean-Paul M.", role: "Software Engineer, Kigali", text: "I got shortlisted for my dream job within 2 days of applying. The profile system is so easy to use." },
             { name: "Fatima O.", role: "Recruiter, Lagos", text: "The ranked shortlists with strengths and gaps per candidate changed how we hire. Highly recommend." },
           ].map(({ name, role, text }) => (
@@ -122,7 +122,7 @@ export default function PublicHomePage() {
         <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white text-center mb-8">Why TalentLink Africa?</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl mx-auto">
           {[
-            "Human-first — AI assists, humans decide",
+            "Human-first — technology assists, humans decide",
             "Transparent scoring with full reasoning",
             "Built specifically for African talent markets",
             "Supports CSV, PDF resume & structured profiles",

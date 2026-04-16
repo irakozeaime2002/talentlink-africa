@@ -5,9 +5,11 @@ import { useAppDispatch } from "../../store/hooks";
 import { importCSV, importResumes } from "../../store/slices/candidatesSlice";
 import toast from "react-hot-toast";
 
+import { Candidate } from "../../types";
+
 interface Props {
   jobId?: string;
-  onImported?: () => void;
+  onImported?: (newCandidates: Candidate[]) => void;
 }
 
 export default function CandidateUpload({ jobId, onImported }: Props) {
@@ -23,7 +25,7 @@ export default function CandidateUpload({ jobId, onImported }: Props) {
     try {
       const res = await dispatch(importCSV({ file, jobId })).unwrap();
       toast.success(`Imported ${res.inserted} candidates from CSV`);
-      onImported?.();
+      onImported?.(res.candidates);
     } catch {
       toast.error("CSV import failed");
     } finally {
@@ -39,7 +41,7 @@ export default function CandidateUpload({ jobId, onImported }: Props) {
     try {
       const res = await dispatch(importResumes({ files, jobId })).unwrap();
       toast.success(`Imported ${res.inserted} resumes`);
-      onImported?.();
+      onImported?.(res.candidates);
     } catch {
       toast.error("Resume import failed");
     } finally {

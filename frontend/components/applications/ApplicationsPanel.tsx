@@ -1,10 +1,11 @@
 "use client";
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { loadJobApplications } from "../../store/slices/applicationsSlice";
 import { Application, User } from "../../types";
 import { Users, ChevronRight } from "lucide-react";
+import * as api from "../../lib/api";
 
 const STATUS_CONFIG: Record<string, { bg: string; text: string; dot: string }> = {
   pending:     { bg: "bg-amber-50",  text: "text-amber-700",  dot: "bg-amber-400" },
@@ -24,20 +25,75 @@ export default function ApplicationsPanel({ jobId }: { jobId: string }) {
   const dispatch = useAppDispatch();
   const router = useRouter();
   const { items, loading } = useAppSelector((s) => s.applications);
+  const [allApplications, setAllApplications] = useState<Application[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { dispatch(loadJobApplications(jobId)); }, [dispatch, jobId]);
+  useEffect(() => { 
+    dispatch(loadJobApplications({ jobId, page: 1, limit: 50 })).then((result: any) => {
+      if (result.payload) {
+        setAllApplications(result.payload.data);
+        setCurrentPage(1);
+        // Check if there's more data
+        api.fetchJobApplications(jobId, 1, 50).then(response => {
+          setHasMore(response.pagination.hasMore);
+        });
+      }
+    });
+  }, [dispatch, jobId]);
+
+  const loadMore = async () => {
+    if (loadingMore || !hasMore) return;
+    
+    setLoadingMore(true);
+    try {
+      const response = await api.fetchJobApplications(jobId, currentPage + 1, 50);
+      setAllApplications(prev => [...prev, ...response.applications]);
+      setCurrentPage(prev => prev + 1);
+      setHasMore(response.pagination.hasMore);
+    } catch (error) {
+      console.error('Failed to load more applications:', error);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!hasMore || loadingMore) return;
+
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          loadMore();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (sentinelRef.current) {
+      observerRef.current.observe(sentinelRef.current);
+    }
+
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+      }
+    };
+  }, [hasMore, loadingMore, currentPage]);
 
   const statusCounts = {
-    total: items.length,
-    shortlisted: items.filter((a) => a.status === "shortlisted").length,
-    pending: items.filter((a) => a.status === "pending").length,
+    total: allApplications.length,
+    shortlisted: allApplications.filter((a) => a.status === "shortlisted").length,
+    pending: allApplications.filter((a) => a.status === "pending").length,
   };
 
   if (loading) return (
-    <div className="space-y-3">
-      {[...Array(3)].map((_, i) => (
-        <div key={i} className="h-20 bg-gray-100 rounded-2xl animate-pulse" />
-      ))}
+    <div className="text-center py-8">
+      <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mx-auto mb-3" />
+      <p className="text-sm text-gray-400">Loading applications...</p>
     </div>
   );
 
@@ -45,15 +101,15 @@ export default function ApplicationsPanel({ jobId }: { jobId: string }) {
     <div>
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
-        <h2 className="text-lg font-bold text-gray-900">Applications</h2>
+        <h2 className="text-lg font-bold text-gray-900 dark:text-white">Applications</h2>
         <div className="flex gap-2 text-xs font-medium">
-          <span className="bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full">{statusCounts.total} total</span>
-          {statusCounts.shortlisted > 0 && <span className="bg-green-100 text-green-700 px-2.5 py-1 rounded-full">{statusCounts.shortlisted} shortlisted</span>}
-          {statusCounts.pending > 0 && <span className="bg-amber-100 text-amber-700 px-2.5 py-1 rounded-full">{statusCounts.pending} pending</span>}
+          <span className="bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-400 px-2.5 py-1 rounded-full">{statusCounts.total} total</span>
+          {statusCounts.shortlisted > 0 && <span className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2.5 py-1 rounded-full">{statusCounts.shortlisted} shortlisted</span>}
+          {statusCounts.pending > 0 && <span className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-2.5 py-1 rounded-full">{statusCounts.pending} pending</span>}
         </div>
       </div>
 
-      {items.length === 0 ? (
+      {allApplications.length === 0 ? (
         <div className="text-center py-16 text-gray-400">
           <Users size={40} className="mx-auto mb-3 opacity-20" />
           <p className="font-medium text-gray-500">No applications yet</p>
@@ -61,7 +117,7 @@ export default function ApplicationsPanel({ jobId }: { jobId: string }) {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3">
-          {items.map((app: Application) => {
+          {allApplications.map((app: Application) => {
             const applicant = app.applicant_id as User;
             const name = typeof applicant === "object" ? applicant.name : "Applicant";
             const email = typeof applicant === "object" ? applicant.email : "";
@@ -109,6 +165,17 @@ export default function ApplicationsPanel({ jobId }: { jobId: string }) {
               </button>
             );
           })}
+          
+          {/* Sentinel element for infinite scroll */}
+          {hasMore && <div ref={sentinelRef} className="h-4" />}
+          
+          {/* Loading indicator */}
+          {loadingMore && (
+            <div className="text-center py-3">
+              <div className="w-6 h-6 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mx-auto" />
+              <p className="text-xs text-gray-400 mt-2">Loading more applications...</p>
+            </div>
+          )}
         </div>
       )}
     </div>

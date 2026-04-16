@@ -10,6 +10,7 @@ import {
   ArrowLeft, Briefcase, GraduationCap, FolderGit2, Award,
   MessageSquare, FileText, CheckCircle2, Phone, MapPin,
   Calendar, User as UserIcon, Hash, Mail, ExternalLink, Paperclip, Download,
+  Languages, Globe, Linkedin, Github, Twitter,
 } from "lucide-react";
 import * as api from "../../../lib/api";
 import axios from "axios";
@@ -56,7 +57,15 @@ export default function ApplicationDetailPage() {
   const [statusUpdating, setStatusUpdating] = useState(false);
 
   useEffect(() => {
+    // Wait for user to be loaded from auth state
+    if (!user) return;
+    
     const token = Cookies.get("token");
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+    
     axios.get(`${process.env.NEXT_PUBLIC_API_URL}/applications/${id}`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -64,13 +73,25 @@ export default function ApplicationDetailPage() {
         const data: Application = r.data;
         setApp(data);
         const applicantId = typeof data.applicant_id === "object" ? (data.applicant_id as User)._id : data.applicant_id;
+        // Only fetch full profile if user is a recruiter
         if (applicantId && user?.role === "recruiter") {
-          fetchApplicantProfile(applicantId).then(setProfile).catch(() => {});
-          fetchApplicantUser(applicantId).then(setApplicantUser).catch(() => {});
+          fetchApplicantProfile(applicantId)
+            .then(setProfile)
+            .catch((err) => {
+              console.error("Failed to fetch applicant profile:", err);
+            });
+          fetchApplicantUser(applicantId)
+            .then(setApplicantUser)
+            .catch((err) => {
+              console.error("Failed to fetch applicant user:", err);
+            });
         }
         setLoading(false);
       })
-      .catch(() => { setLoading(false); });
+      .catch((err) => { 
+        console.error("Failed to fetch application:", err);
+        setLoading(false); 
+      });
   }, [id, user]);
 
   const handleStatus = async (status: string) => {
@@ -108,6 +129,12 @@ export default function ApplicationDetailPage() {
   const education = profile?.education?.length ? profile.education : app.education;
   const projects = profile?.projects?.length ? profile.projects : app.projects;
   const certifications = profile?.certifications?.length ? profile.certifications : app.certifications;
+  const languages = profile?.languages || [];
+  const headline = profile?.headline || "";
+  const bio = profile?.bio || "";
+  const profileLocation = profile?.location || "";
+  const availability = profile?.availability;
+  const socialLinks = profile?.socialLinks || {};
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -131,10 +158,11 @@ export default function ApplicationDetailPage() {
 
               <div className="flex-1 min-w-0">
                 <h1 className="text-2xl font-extrabold text-white mb-1">{name}</h1>
+                {headline && <p className="text-sm text-sky-200 mb-2 font-medium">{headline}</p>}
                 <div className="flex flex-wrap gap-3 text-sm mb-3">
                   <span className="flex items-center gap-1.5 text-sky-300"><Mail size={13} />{email}</span>
                   {applicantUser?.phone && <span className="flex items-center gap-1.5 text-emerald-300"><Phone size={13} />{applicantUser.phone}</span>}
-                  {applicantUser?.residence && <span className="flex items-center gap-1.5 text-violet-300"><MapPin size={13} />{applicantUser.residence}</span>}
+                  {(applicantUser?.residence || profileLocation) && <span className="flex items-center gap-1.5 text-violet-300"><MapPin size={13} />{applicantUser?.residence || profileLocation}</span>}
                 </div>
                 <div className="flex items-center gap-3 flex-wrap">
                   <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full bg-white/15 text-white border border-white/20 capitalize`}>
@@ -181,6 +209,65 @@ export default function ApplicationDetailPage() {
         </div>
       )}
 
+      {/* Bio */}
+      {bio && (
+        <Section icon={<UserIcon size={18} />} title="About" color="text-indigo-500">
+          <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{bio}</p>
+        </Section>
+      )}
+
+      {/* Availability */}
+      {availability && (availability.status || availability.type || availability.startDate) && (
+        <Section icon={<Calendar size={18} />} title="Availability" color="text-teal-500">
+          <div className="flex flex-wrap gap-3">
+            {availability.status && (
+              <span className="inline-flex items-center gap-1.5 text-sm bg-teal-50 text-teal-700 border border-teal-100 px-3 py-1.5 rounded-full font-medium">
+                {availability.status}
+              </span>
+            )}
+            {availability.type && (
+              <span className="inline-flex items-center gap-1.5 text-sm bg-blue-50 text-blue-700 border border-blue-100 px-3 py-1.5 rounded-full font-medium">
+                {availability.type}
+              </span>
+            )}
+            {availability.startDate && (
+              <span className="inline-flex items-center gap-1.5 text-sm bg-gray-50 text-gray-700 border border-gray-100 px-3 py-1.5 rounded-full font-medium">
+                Available from {new Date(availability.startDate).toLocaleDateString()}
+              </span>
+            )}
+          </div>
+        </Section>
+      )}
+
+      {/* Social Links */}
+      {Object.keys(socialLinks).length > 0 && (
+        <Section icon={<Globe size={18} />} title="Social & Professional Links" color="text-sky-500">
+          <div className="flex flex-wrap gap-2">
+            {Object.entries(socialLinks).map(([platform, url]) => {
+              const getIcon = () => {
+                const lower = platform.toLowerCase();
+                if (lower.includes('linkedin')) return <Linkedin size={14} />;
+                if (lower.includes('github') || lower.includes('git')) return <Github size={14} />;
+                if (lower.includes('twitter') || lower.includes('x')) return <Twitter size={14} />;
+                return <ExternalLink size={14} />;
+              };
+              return (
+                <a
+                  key={platform}
+                  href={url as string}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-sm bg-sky-50 text-sky-700 border border-sky-100 px-3 py-1.5 rounded-full font-medium hover:bg-sky-100 transition"
+                >
+                  {getIcon()}
+                  <span className="capitalize">{platform}</span>
+                </a>
+              );
+            })}
+          </div>
+        </Section>
+      )}
+
       {/* Personal info */}
       {applicantUser && (applicantUser.date_of_birth || applicantUser.gender || applicantUser.nationality || applicantUser.national_id || applicantUser.father_name || applicantUser.mother_name) && (
         <Section icon={<UserIcon size={18} />} title="Personal Information" color="text-violet-500">
@@ -218,6 +305,19 @@ export default function ApplicationDetailPage() {
                 </div>
               </div>
             )}
+          </div>
+        </Section>
+      )}
+
+      {/* Languages */}
+      {languages.length > 0 && (
+        <Section icon={<Languages size={18} />} title="Languages" color="text-purple-500">
+          <div className="flex flex-wrap gap-2">
+            {languages.map((lang, i) => (
+              <span key={i} className="text-sm bg-purple-50 text-purple-700 border border-purple-100 px-3 py-1.5 rounded-full font-medium">
+                {lang.name}{lang.proficiency && ` · ${lang.proficiency}`}
+              </span>
+            ))}
           </div>
         </Section>
       )}

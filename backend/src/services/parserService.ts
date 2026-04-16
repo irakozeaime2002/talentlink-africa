@@ -114,30 +114,51 @@ export const parseCSV = (buffer: Buffer): CandidateInput[] => {
     const skills = skillsRaw ? skillsRaw.split(/[,;|]/).map(s => ({ name: s.trim() })).filter(s => s.name) : [];
 
     // Try to extract work experience from various possible column combinations
-    // Some CSVs have separate company/role columns, others have it all in one field
+    // Support both camelCase and Umurava schema ("Start Date", "End Date", "Is Current")
     const expFields = ['experience', 'Experience', 'work_experience', 'years_experience', 'years_of_experience', 'yoe'];
     const expRaw = expFields.map(f => row[f]).find(v => v) || "";
     const companyFields = ['company', 'Company', 'employer', 'Employer', 'organization'];
     const company = companyFields.map(f => row[f]).find(v => v) || "";
     const roleFields = ['role', 'Role', 'title', 'Title', 'position', 'Position', 'job_title'];
     const role = roleFields.map(f => row[f]).find(v => v) || "";
+    const startDateFields = ['startDate', 'Start Date', 'start_date', 'from', 'From'];
+    const startDate = startDateFields.map(f => row[f]).find(v => v) || "";
+    const endDateFields = ['endDate', 'End Date', 'end_date', 'to', 'To'];
+    const endDate = endDateFields.map(f => row[f]).find(v => v) || "";
+    const isCurrentFields = ['isCurrent', 'Is Current', 'is_current', 'current', 'Current'];
+    const isCurrentRaw = isCurrentFields.map(f => row[f]).find(v => v);
+    // Convert various truthy values to boolean
+    const isCurrent = isCurrentRaw === 'true' || isCurrentRaw === 'True' || isCurrentRaw === 'TRUE' || 
+                      isCurrentRaw === 'Yes' || isCurrentRaw === 'yes' || isCurrentRaw === 'YES' ||
+                      isCurrentRaw === '1' || isCurrentRaw === 'Present' || isCurrentRaw === 'present';
+    
     const experience = (expRaw || company || role) ? [{
       company: company,
       role: role,
       description: expRaw,
+      startDate: startDate,
+      endDate: endDate,
+      isCurrent: isCurrent
     }] : [];
 
-    // Try to extract education - again, flexible column name matching
+    // Try to extract education - support Umurava schema ("Field of Study", "Start Year", "End Year")
     const eduFields = ['education', 'Education', 'degree', 'Degree', 'qualification', 'Qualification'];
     const eduRaw = eduFields.map(f => row[f]).find(v => v) || "";
     const institutionFields = ['institution', 'Institution', 'university', 'University', 'school', 'School', 'college'];
     const institution = institutionFields.map(f => row[f]).find(v => v) || "";
-    const fieldFields = ['field', 'Field', 'major', 'Major', 'field_of_study', 'study_field'];
+    const fieldFields = ['field', 'Field', 'major', 'Major', 'field_of_study', 'Field of Study', 'fieldOfStudy', 'study_field'];
     const fieldOfStudy = fieldFields.map(f => row[f]).find(v => v) || "";
+    const startYearFields = ['startYear', 'Start Year', 'start_year', 'from_year'];
+    const startYear = startYearFields.map(f => row[f]).find(v => v) || "";
+    const endYearFields = ['endYear', 'End Year', 'end_year', 'to_year', 'graduation_year'];
+    const endYear = endYearFields.map(f => row[f]).find(v => v) || "";
+    
     const education = (eduRaw || institution) ? [{
       institution: institution,
       degree: eduRaw,
       fieldOfStudy: fieldOfStudy,
+      startYear: startYear ? parseInt(startYear, 10) : undefined,
+      endYear: endYear ? parseInt(endYear, 10) : undefined
     }] : [];
 
     // Try to extract certifications
@@ -173,11 +194,14 @@ export const parseCSV = (buffer: Buffer): CandidateInput[] => {
  * Convert raw resume text into a basic candidate profile
  * 
  * When someone uploads a PDF resume, we can't perfectly parse it into structured
- * fields (that would require complex NLP). Instead, we store the full text and
- * let the AI read it during screening.
+ * fields (that would require complex NLP). Instead, we store the full text in
+ * cv_text field and let the deterministic scoring search it for job requirements.
  * 
- * The AI is actually better at understanding unstructured resumes than any
- * rule-based parser we could write.
+ * The scoring engine will search cv_text for:
+ * - Required skills mentioned anywhere in the resume
+ * - Years of experience patterns ("5 years", "since 2020", etc.)
+ * - Education keywords (degree, university, graduated)
+ * - Project keywords (built, developed, portfolio)
  */
 export const resumeTextToCandidate = (text: string, index: number): CandidateInput => {
   return {
@@ -185,9 +209,10 @@ export const resumeTextToCandidate = (text: string, index: number): CandidateInp
     name: extractName(text),
     skills: [],
     education: [],
-    experience: [{ company: "", role: "See resume", description: text.slice(0, 3000) }],
+    experience: [],
     projects: [],
     certifications: [],
+    cv_text: text.slice(0, 10000), // Store full resume text for scoring
   };
 };
 

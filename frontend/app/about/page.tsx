@@ -7,9 +7,9 @@ const team = [
 ];
 
 const values = [
-  { icon: Target, title: "Human-First Hiring", desc: "AI assists recruiters — humans always make the final call. We believe technology should empower, not replace, human judgment." },
+  { icon: Target, title: "Human-First Hiring", desc: "Technology assists recruiters — humans always make the final call. We believe technology should empower, not replace, human judgment." },
   { icon: Globe, title: "Built for Africa", desc: "Designed with African talent markets in mind. We understand the unique challenges and opportunities across the continent." },
-  { icon: Award, title: "Transparent AI", desc: "Every AI decision comes with clear reasoning. Candidates are evaluated on skills, experience, projects, and education — nothing else." },
+  { icon: Award, title: "Transparent Screening", desc: "Every decision comes with clear reasoning. Candidates are evaluated on skills, experience, projects, and education — nothing else." },
   { icon: Users, title: "Equal Opportunity", desc: "Our platform removes unconscious bias by focusing purely on professional qualifications and demonstrated abilities." },
 ];
 
@@ -33,7 +33,7 @@ export default function AboutPage() {
           <span className="bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">with the Right Opportunities</span>
         </h1>
         <p className="text-lg text-gray-500 dark:text-gray-400 max-w-2xl mx-auto leading-relaxed">
-          TalentLink Africa is an AI-powered recruitment platform built to help African companies hire smarter, faster, and more fairly — while keeping humans in control of every hiring decision.
+          TalentLink Africa is a smart recruitment platform built to help African companies hire smarter, faster, and more fairly — while keeping humans in control of every hiring decision.
         </p>
         <div className="flex justify-center gap-3">
           <Link href="/board" className="btn-glow px-6 py-3 rounded-xl text-white font-semibold flex items-center gap-2">
@@ -64,7 +64,7 @@ export default function AboutPage() {
               We're on a mission to eliminate the inefficiencies of traditional recruitment in Africa. High application volumes, subjective evaluations, and slow processes cost companies time and talent.
             </p>
             <p className="text-gray-500 dark:text-gray-400 leading-relaxed mb-6">
-              TalentLink Africa uses AI to analyze candidates across  dimensions — sets by recruiter — producing ranked shortlists with clear, explainable reasoning.
+              TalentLink Africa uses intelligent screening to analyze candidates across multiple dimensions — producing ranked shortlists with clear, explainable reasoning.
             </p>
             <ul className="space-y-2">
               {["Reduce time-to-hire by up to 10x", "Eliminate unconscious bias in screening", "Give every candidate a fair, objective evaluation", "Keep recruiters in full control of final decisions"].map((item) => (

@@ -1,4 +1,5 @@
 "use client";
+import { useEffect, useRef } from "react";
 import { Candidate } from "../../types";
 import Badge from "../ui/Badge";
 
@@ -6,9 +7,38 @@ interface Props {
   candidates: Candidate[];
   selected: string[];
   onChange: (ids: string[]) => void;
+  onLoadMore?: () => void;
+  hasMore?: boolean;
+  loading?: boolean;
 }
 
-export default function CandidateSelector({ candidates, selected, onChange }: Props) {
+export default function CandidateSelector({ candidates, selected, onChange, onLoadMore, hasMore, loading }: Props) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!onLoadMore || !hasMore || loading) return;
+
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          onLoadMore();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (sentinelRef.current) {
+      observerRef.current.observe(sentinelRef.current);
+    }
+
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+      }
+    };
+  }, [onLoadMore, hasMore, loading]);
   const toggle = (id: string) =>
     onChange(selected.includes(id) ? selected.filter((s) => s !== id) : [...selected, id]);
 
@@ -23,7 +53,7 @@ export default function CandidateSelector({ candidates, selected, onChange }: Pr
           {selected.length === candidates.length ? "Deselect All" : "Select All"}
         </button>
       </div>
-      <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+      <div ref={scrollRef} className="space-y-2 max-h-72 overflow-y-auto pr-1">
         {candidates.map((c) => (
           <label
             key={c._id}
@@ -46,6 +76,17 @@ export default function CandidateSelector({ candidates, selected, onChange }: Pr
             <Badge label={c.source} color={c.source === "profile" ? "blue" : c.source === "csv" ? "green" : "yellow"} />
           </label>
         ))}
+        
+        {/* Sentinel element for infinite scroll */}
+        {hasMore && <div ref={sentinelRef} className="h-4" />}
+        
+        {/* Loading indicator */}
+        {loading && (
+          <div className="text-center py-3">
+            <div className="w-6 h-6 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mx-auto" />
+            <p className="text-xs text-gray-400 mt-2">Loading more...</p>
+          </div>
+        )}
       </div>
     </div>
   );

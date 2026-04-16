@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "../../../store/hooks";
 import { loadJobs, removeJob } from "../../../store/slices/jobsSlice";
@@ -37,28 +37,93 @@ export default function JobDetailPage() {
   const [topN, setTopN] = useState(20);
   const [tab, setTab] = useState<Tab>("applications");
   const [applicantCandidates, setApplicantCandidates] = useState<import("../../../types").Candidate[]>([]);
+  const [loadingCandidates, setLoadingCandidates] = useState(false);
+  const [candidatesCache, setCandidatesCache] = useState<{ data: import("../../../types").Candidate[]; timestamp: number; page: number; hasMore: boolean } | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMoreCandidates, setHasMoreCandidates] = useState(false);
 
-  const refreshApplicantCandidates = () => {
-    api.fetchJobApplicantCandidates(id)
-      .then((cs) => { setApplicantCandidates(cs); setSelectedIds(cs.map((c) => c._id)); })
-      .catch(() => {});
-  };
+  const refreshApplicantCandidates = useCallback((forceRefresh = false, loadMore = false) => {
+    const CACHE_DURATION = 3 * 60 * 1000; // 3 minutes
+    const now = Date.now();
+    
+    // Use cache if available and fresh (only for first page)
+    if (!forceRefresh && !loadMore && candidatesCache && (now - candidatesCache.timestamp) < CACHE_DURATION) {
+      setApplicantCandidates(candidatesCache.data);
+      setSelectedIds(candidatesCache.data.map((c) => c._id));
+      setHasMoreCandidates(candidatesCache.hasMore);
+      setCurrentPage(candidatesCache.page);
+      return;
+    }
+    
+    const pageToLoad = loadMore ? currentPage + 1 : 1;
+    setLoadingCandidates(true);
+    
+    api.fetchJobApplicantCandidates(id, pageToLoad, 50)
+      .then((response) => { 
+        const newCandidates = loadMore ? [...applicantCandidates, ...response.candidates] : response.candidates;
+        setApplicantCandidates(newCandidates); 
+        setSelectedIds(newCandidates.map((c) => c._id));
+        setHasMoreCandidates(response.pagination.hasMore);
+        setCurrentPage(pageToLoad);
+        
+        // Only cache first page
+        if (!loadMore) {
+          setCandidatesCache({ 
+            data: newCandidates, 
+            timestamp: Date.now(),
+            page: pageToLoad,
+            hasMore: response.pagination.hasMore
+          });
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to load candidates:', err);
+        // Don't show error toast on initial load, only on manual refresh
+        if (forceRefresh) {
+          toast.error('Failed to load candidates');
+        }
+      })
+      .finally(() => setLoadingCandidates(false));
+  }, [id, candidatesCache, currentPage, applicantCandidates]);
 
   useEffect(() => {
+    // Preload ALL data when page loads for instant tab switching
     dispatch(loadJobs());
-    dispatch(loadScreeningResults(id));
-    dispatch(loadJobApplications(id));
-    refreshApplicantCandidates();
-  }, [dispatch, id]);
+    dispatch(loadJobApplications({ jobId: id, page: 1, limit: 50 }));
+    dispatch(loadScreeningResults(id)); // Preload screening results
+    refreshApplicantCandidates(); // Preload candidates
+  }, [dispatch, id, refreshApplicantCandidates]); // Load once when page mounts
 
   const handleScreenApplicants = async () => {
     try {
-      const cs = await api.fetchJobApplicantCandidates(id);
-      if (cs.length === 0) { toast.error("No candidate profiles found yet"); return; }
-      setApplicantCandidates(cs);
-      setSelectedIds(cs.map((c) => c._id));
+      const CACHE_DURATION = 3 * 60 * 1000;
+      const now = Date.now();
+      
+      // Use cache if available and fresh
+      if (candidatesCache && (now - candidatesCache.timestamp) < CACHE_DURATION) {
+        setApplicantCandidates(candidatesCache.data);
+        setSelectedIds(candidatesCache.data.map((c) => c._id));
+        setHasMoreCandidates(candidatesCache.hasMore);
+        setCurrentPage(candidatesCache.page);
+        setTab("screen");
+        toast.success(`${candidatesCache.data.length} applicant${candidatesCache.data.length !== 1 ? "s" : ""} loaded`);
+        return;
+      }
+      
+      const response = await api.fetchJobApplicantCandidates(id, 1, 50);
+      if (response.candidates.length === 0) { toast.error("No candidate profiles found yet"); return; }
+      setApplicantCandidates(response.candidates);
+      setSelectedIds(response.candidates.map((c) => c._id));
+      setHasMoreCandidates(response.pagination.hasMore);
+      setCurrentPage(1);
+      setCandidatesCache({ 
+        data: response.candidates, 
+        timestamp: Date.now(),
+        page: 1,
+        hasMore: response.pagination.hasMore
+      });
       setTab("screen");
-      toast.success(`${cs.length} applicant${cs.length !== 1 ? "s" : ""} loaded`);
+      toast.success(`${response.candidates.length} applicant${response.candidates.length !== 1 ? "s" : ""} loaded`);
     } catch { toast.error("Failed to load applicant profiles"); }
   };
 
@@ -276,10 +341,22 @@ export default function JobDetailPage() {
               <h2 className="text-lg font-bold text-gray-900 dark:text-white">Select Candidates</h2>
               <p className="text-xs text-gray-400 mt-0.5">Applicants for this job are listed below. You can also add candidates from the pool.</p>
             </div>
-            <CandidateUpload jobId={id} onImported={refreshApplicantCandidates} />
+            <CandidateUpload jobId={id} onImported={(newCandidates) => {
+            setApplicantCandidates((prev) => {
+              const existingIds = new Set(prev.map((c) => c._id));
+              const fresh = newCandidates.filter((c) => !existingIds.has(c._id));
+              return [...prev, ...fresh];
+            });
+            setSelectedIds((prev) => [...prev, ...newCandidates.map((c) => c._id)]);
+          }} />
           </div>
 
-          {applicantCandidates.length === 0 ? (
+          {loadingCandidates ? (
+            <div className="text-center py-8">
+              <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mx-auto mb-3" />
+              <p className="text-sm text-gray-400">Loading candidates...</p>
+            </div>
+          ) : applicantCandidates.length === 0 ? (
             <div className="text-center py-8 text-gray-400">
               <p className="text-sm">No applicants have applied to this job yet.</p>
               <p className="text-xs mt-1">Share the job link or upload candidates manually.</p>
@@ -296,6 +373,9 @@ export default function JobDetailPage() {
                 candidates={applicantCandidates}
                 selected={selectedIds}
                 onChange={setSelectedIds}
+                onLoadMore={() => refreshApplicantCandidates(false, true)}
+                hasMore={hasMoreCandidates}
+                loading={loadingCandidates}
               />
             </>
           )}

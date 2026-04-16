@@ -56,12 +56,12 @@ export default function RegisterPage() {
                 African professionals
               </span>
             </h2>
-            <p className="text-white/90 text-sm leading-relaxed">{APP_TAGLINE}</p>
+            <p className="text-white/90 text-sm leading-relaxed">Smart talent screening built for Africa</p>
           </div>
 
           <div className="relative z-10 grid grid-cols-2 gap-4">
             {[
-              { icon: <Zap size={20} />, label: "AI Matching", desc: "Gemini-powered candidate ranking" },
+              { icon: <Zap size={20} />, label: "Smart Matching", desc: "Intelligent candidate ranking" },
               { icon: <BarChart2 size={20} />, label: "Skill Scoring", desc: "Weighted multi-dimension scores" },
               { icon: <Briefcase size={20} />, label: "Fast Hiring", desc: "Shortlist top talent instantly" },
               { icon: <Users size={20} />, label: "Pan-Africa", desc: "Built for African professionals" },

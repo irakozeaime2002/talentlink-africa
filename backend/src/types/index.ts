@@ -88,6 +88,8 @@ export interface ScoreBreakdown {
   experience: number;
   education: number;
   projects: number;
+  documents?: number;  // Document quality score
+  answers?: number;    // Application answers quality score
 }
 
 export interface RankedCandidate {

@@ -6,11 +6,27 @@ interface JobsState {
   items: Job[];
   loading: boolean;
   error: string | null;
+  lastFetched: number | null;
 }
 
-const initialState: JobsState = { items: [], loading: false, error: null };
+const initialState: JobsState = { items: [], loading: false, error: null, lastFetched: null };
 
-export const loadJobs = createAsyncThunk("jobs/load", api.fetchJobs);
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+export const loadJobs = createAsyncThunk(
+  "jobs/load",
+  async (_, { getState }) => {
+    const state = getState() as { jobs: JobsState };
+    const now = Date.now();
+    
+    // Return cached data if it's fresh
+    if (state.jobs.lastFetched && (now - state.jobs.lastFetched) < CACHE_DURATION && state.jobs.items.length > 0) {
+      return state.jobs.items;
+    }
+    
+    return api.fetchJobs();
+  }
+);
 export const addJob = createAsyncThunk("jobs/add", api.createJob);
 export const editJob = createAsyncThunk("jobs/edit", ({ id, data }: { id: string; data: Partial<Job> }) =>
   api.updateJob(id, data)
@@ -29,7 +45,11 @@ const jobsSlice = createSlice({
   extraReducers: (builder) => {
     builder
       .addCase(loadJobs.pending, (s) => { s.loading = true; s.error = null; })
-      .addCase(loadJobs.fulfilled, (s, a) => { s.loading = false; s.items = a.payload; })
+      .addCase(loadJobs.fulfilled, (s, a) => { 
+        s.loading = false; 
+        s.items = a.payload; 
+        s.lastFetched = Date.now();
+      })
       .addCase(loadJobs.rejected, (s, a) => { s.loading = false; s.error = a.error.message || "Failed to load jobs"; })
       .addCase(addJob.fulfilled, (s, a) => { s.items.unshift(a.payload); })
       .addCase(editJob.fulfilled, (s, a) => {
