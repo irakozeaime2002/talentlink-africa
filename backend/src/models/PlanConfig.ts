@@ -6,6 +6,8 @@ export interface IPlanConfig extends Document {
   maxScreeningsPerMonth: number; // -1 = unlimited
   csvUpload: boolean;
   resumeUpload: boolean;
+  monthlyPrice: number;      // Price in RWF
+  yearlyPrice: number;       // Price in RWF
   updatedAt: Date;
 }
 
@@ -16,6 +18,8 @@ const PlanConfigSchema = new Schema<IPlanConfig>(
     maxScreeningsPerMonth: { type: Number, default: 5 },
     csvUpload: { type: Boolean, default: false },
     resumeUpload: { type: Boolean, default: false },
+    monthlyPrice: { type: Number, default: 0 },
+    yearlyPrice: { type: Number, default: 0 },
   },
   { timestamps: true }
 );

@@ -28,7 +28,7 @@ export const getPlanConfig = async (req: Request, res: Response, next: NextFunct
 // Update plan configuration (admin only)
 export const updatePlanConfig = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { maxJobs, maxScreeningsPerMonth, csvUpload, resumeUpload } = req.body;
+    const { maxJobs, maxScreeningsPerMonth, csvUpload, resumeUpload, monthlyPrice, yearlyPrice } = req.body;
     
     let config = await PlanConfig.findOne({ plan: req.params.plan });
     
@@ -40,6 +40,8 @@ export const updatePlanConfig = async (req: Request, res: Response, next: NextFu
         maxScreeningsPerMonth,
         csvUpload,
         resumeUpload,
+        monthlyPrice,
+        yearlyPrice,
       });
     } else {
       // Update existing
@@ -47,6 +49,8 @@ export const updatePlanConfig = async (req: Request, res: Response, next: NextFu
       if (maxScreeningsPerMonth !== undefined) config.maxScreeningsPerMonth = maxScreeningsPerMonth;
       if (csvUpload !== undefined) config.csvUpload = csvUpload;
       if (resumeUpload !== undefined) config.resumeUpload = resumeUpload;
+      if (monthlyPrice !== undefined) config.monthlyPrice = monthlyPrice;
+      if (yearlyPrice !== undefined) config.yearlyPrice = yearlyPrice;
       await config.save();
     }
     
@@ -60,9 +64,9 @@ export const updatePlanConfig = async (req: Request, res: Response, next: NextFu
 export const initializePlanConfigs = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const defaults = [
-      { plan: "free", maxJobs: 3, maxScreeningsPerMonth: 5, csvUpload: false, resumeUpload: false },
-      { plan: "pro", maxJobs: 50, maxScreeningsPerMonth: 50, csvUpload: true, resumeUpload: true },
-      { plan: "enterprise", maxJobs: -1, maxScreeningsPerMonth: -1, csvUpload: true, resumeUpload: true },
+      { plan: "free", maxJobs: 3, maxScreeningsPerMonth: 5, csvUpload: false, resumeUpload: false, monthlyPrice: 0, yearlyPrice: 0 },
+      { plan: "pro", maxJobs: 50, maxScreeningsPerMonth: 50, csvUpload: true, resumeUpload: true, monthlyPrice: 10000, yearlyPrice: 80000 },
+      { plan: "enterprise", maxJobs: -1, maxScreeningsPerMonth: -1, csvUpload: true, resumeUpload: true, monthlyPrice: 30000, yearlyPrice: 240000 },
     ];
 
     const results = [];

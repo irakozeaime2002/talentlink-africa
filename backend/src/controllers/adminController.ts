@@ -225,10 +225,10 @@ export const updateApplicantPlanConfig = async (req: Request, res: Response, nex
   try {
     const { plan } = req.params;
     if (!["free", "pro"].includes(plan)) { res.status(400).json({ error: "Invalid plan" }); return; }
-    const { maxApplications, maxCVUploads, profileHighlight } = req.body;
+    const { maxApplications, maxCVUploads, profileHighlight, monthlyPrice, yearlyPrice } = req.body;
     const config = await ApplicantPlanConfig.findOneAndUpdate(
       { plan },
-      { maxApplications, maxCVUploads, profileHighlight },
+      { maxApplications, maxCVUploads, profileHighlight, monthlyPrice, yearlyPrice },
       { new: true, upsert: true }
     );
     res.json(config);
@@ -248,10 +248,10 @@ export const updatePlanConfig = async (req: Request, res: Response, next: NextFu
     if (![ "free", "pro", "enterprise"].includes(plan)) {
       res.status(400).json({ error: "Invalid plan" }); return;
     }
-    const { maxJobs, maxScreeningsPerMonth, csvUpload, resumeUpload } = req.body;
+    const { maxJobs, maxScreeningsPerMonth, csvUpload, resumeUpload, monthlyPrice, yearlyPrice } = req.body;
     const config = await PlanConfig.findOneAndUpdate(
       { plan },
-      { maxJobs, maxScreeningsPerMonth, csvUpload, resumeUpload },
+      { maxJobs, maxScreeningsPerMonth, csvUpload, resumeUpload, monthlyPrice, yearlyPrice },
       { new: true, upsert: true }
     );
     res.json(config);
@@ -260,16 +260,16 @@ export const updatePlanConfig = async (req: Request, res: Response, next: NextFu
 
 export const seedPlanConfigs = async (): Promise<void> => {
   const defaults = [
-    { plan: "free",       maxJobs: 3,  maxScreeningsPerMonth: 5,  csvUpload: false, resumeUpload: false },
-    { plan: "pro",        maxJobs: -1, maxScreeningsPerMonth: -1, csvUpload: true,  resumeUpload: true  },
-    { plan: "enterprise", maxJobs: -1, maxScreeningsPerMonth: -1, csvUpload: true,  resumeUpload: true  },
+    { plan: "free",       maxJobs: 3,  maxScreeningsPerMonth: 5,  csvUpload: false, resumeUpload: false, monthlyPrice: 0,     yearlyPrice: 0      },
+    { plan: "pro",        maxJobs: -1, maxScreeningsPerMonth: -1, csvUpload: true,  resumeUpload: true,  monthlyPrice: 10000, yearlyPrice: 80000  },
+    { plan: "enterprise", maxJobs: -1, maxScreeningsPerMonth: -1, csvUpload: true,  resumeUpload: true,  monthlyPrice: 30000, yearlyPrice: 240000 },
   ];
   for (const d of defaults) {
     await PlanConfig.findOneAndUpdate({ plan: d.plan }, { $setOnInsert: d }, { upsert: true });
   }
   const applicantDefaults = [
-    { plan: "free", maxApplications: 5,  maxCVUploads: 1,  profileHighlight: false },
-    { plan: "pro",  maxApplications: -1, maxCVUploads: -1, profileHighlight: true  },
+    { plan: "free", maxApplications: 5,  maxCVUploads: 1,  profileHighlight: false, monthlyPrice: 0,    yearlyPrice: 0     },
+    { plan: "pro",  maxApplications: -1, maxCVUploads: -1, profileHighlight: true,  monthlyPrice: 5000, yearlyPrice: 40000 },
   ];
   for (const d of applicantDefaults) {
     await ApplicantPlanConfig.findOneAndUpdate({ plan: d.plan }, { $setOnInsert: d }, { upsert: true });

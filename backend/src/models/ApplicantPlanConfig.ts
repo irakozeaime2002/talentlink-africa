@@ -5,6 +5,8 @@ export interface IApplicantPlanConfig extends Document {
   maxApplications: number;  // -1 = unlimited
   maxCVUploads: number;     // -1 = unlimited
   profileHighlight: boolean; // shows a badge on application visible to recruiter
+  monthlyPrice: number;      // Price in RWF
+  yearlyPrice: number;       // Price in RWF
   updatedAt: Date;
 }
 
@@ -14,6 +16,8 @@ const ApplicantPlanConfigSchema = new Schema<IApplicantPlanConfig>(
     maxApplications: { type: Number, default: 5 },
     maxCVUploads: { type: Number, default: 1 },
     profileHighlight: { type: Boolean, default: false },
+    monthlyPrice: { type: Number, default: 0 },
+    yearlyPrice: { type: Number, default: 0 },
   },
   { timestamps: true }
 );

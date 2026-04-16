@@ -12,6 +12,8 @@ interface PlanConfig {
   maxScreeningsPerMonth: number;
   csvUpload: boolean;
   resumeUpload: boolean;
+  monthlyPrice: number;
+  yearlyPrice: number;
 }
 
 interface ApplicantConfig {
@@ -19,6 +21,8 @@ interface ApplicantConfig {
   maxApplications: number;
   maxCVUploads: number;
   profileHighlight: boolean;
+  monthlyPrice: number;
+  yearlyPrice: number;
 }
 
 const PLAN_LABELS: Record<string, { label: string; color: string; price: string }> = {
@@ -57,7 +61,14 @@ export default function AdminPlansPage() {
   const handleSave = async (config: PlanConfig) => {
     setSaving(config.plan);
     try {
-      await adminUpdatePlanConfig(config.plan, { maxJobs: config.maxJobs, maxScreeningsPerMonth: config.maxScreeningsPerMonth, csvUpload: config.csvUpload, resumeUpload: config.resumeUpload });
+      await adminUpdatePlanConfig(config.plan, { 
+        maxJobs: config.maxJobs, 
+        maxScreeningsPerMonth: config.maxScreeningsPerMonth, 
+        csvUpload: config.csvUpload, 
+        resumeUpload: config.resumeUpload,
+        monthlyPrice: config.monthlyPrice,
+        yearlyPrice: config.yearlyPrice
+      });
       toast.success(`${config.plan} plan updated!`);
     } catch { toast.error("Failed to save"); }
     finally { setSaving(null); }
@@ -66,7 +77,13 @@ export default function AdminPlansPage() {
   const handleSaveApplicant = async (config: ApplicantConfig) => {
     setSaving(`applicant-${config.plan}`);
     try {
-      await adminUpdateApplicantPlanConfig(config.plan, { maxApplications: config.maxApplications, maxCVUploads: config.maxCVUploads, profileHighlight: config.profileHighlight });
+      await adminUpdateApplicantPlanConfig(config.plan, { 
+        maxApplications: config.maxApplications, 
+        maxCVUploads: config.maxCVUploads, 
+        profileHighlight: config.profileHighlight,
+        monthlyPrice: config.monthlyPrice,
+        yearlyPrice: config.yearlyPrice
+      });
       toast.success(`Applicant ${config.plan} plan updated!`);
     } catch { toast.error("Failed to save"); }
     finally { setSaving(null); }
@@ -106,6 +123,16 @@ export default function AdminPlansPage() {
                     <div className={`w-full rounded-xl bg-gradient-to-r ${meta.color} p-4 text-white`}>
                       <p className="font-extrabold text-lg">{meta.label}</p>
                       <p className="text-white/80 text-sm">{meta.price}</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">Monthly Price (RWF)</label>
+                        <input type="number" min={0} value={config.monthlyPrice} onChange={(e) => update(config.plan, "monthlyPrice", parseInt(e.target.value) || 0)} className={INPUT} />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">Yearly Price (RWF)</label>
+                        <input type="number" min={0} value={config.yearlyPrice} onChange={(e) => update(config.plan, "yearlyPrice", parseInt(e.target.value) || 0)} className={INPUT} />
+                      </div>
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">Max Job Posts <span className="normal-case font-normal">(-1 = unlimited)</span></label>
@@ -152,6 +179,16 @@ export default function AdminPlansPage() {
                   <div className={`w-full rounded-xl p-4 text-white bg-gradient-to-r ${config.plan === "free" ? "from-gray-400 to-gray-500" : "from-indigo-500 to-violet-500"}`}>
                     <p className="font-extrabold text-lg capitalize">{config.plan}</p>
                     <p className="text-white/80 text-sm">{config.plan === "free" ? "RWF 0" : "RWF 5,000/mo"}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">Monthly Price (RWF)</label>
+                      <input type="number" min={0} value={config.monthlyPrice} onChange={(e) => updateApplicant(config.plan, "monthlyPrice", parseInt(e.target.value) || 0)} className={INPUT} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">Yearly Price (RWF)</label>
+                      <input type="number" min={0} value={config.yearlyPrice} onChange={(e) => updateApplicant(config.plan, "yearlyPrice", parseInt(e.target.value) || 0)} className={INPUT} />
+                    </div>
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">Max Applications <span className="normal-case font-normal">(-1 = unlimited)</span></label>

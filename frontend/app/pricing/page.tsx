@@ -9,8 +9,8 @@ import { upgradePlan as upgradePlanAction } from "../../store/slices/authSlice";
 import Cookies from "js-cookie";
 import toast from "react-hot-toast";
 
-interface RecruiterConfig { plan: string; maxJobs: number; maxScreeningsPerMonth: number; csvUpload: boolean; resumeUpload: boolean; }
-interface ApplicantConfig { plan: string; maxApplications: number; maxCVUploads: number; profileHighlight: boolean; }
+interface RecruiterConfig { plan: string; maxJobs: number; maxScreeningsPerMonth: number; csvUpload: boolean; resumeUpload: boolean; monthlyPrice: number; yearlyPrice: number; }
+interface ApplicantConfig { plan: string; maxApplications: number; maxCVUploads: number; profileHighlight: boolean; monthlyPrice: number; yearlyPrice: number; }
 
 function buildRecruiterPlan(key: string, config: RecruiterConfig) {
   const features: string[] = [];
@@ -188,9 +188,11 @@ export default function PricingPage() {
             {RECRUITER_PLANS.map((plan) => {
               const cfg = rConfigs[plan.key];
               const { features, disabled } = cfg ? buildRecruiterPlan(plan.key, cfg) : { features: [], disabled: [] };
+              const monthlyPrice = cfg?.monthlyPrice ?? plan.monthly;
+              const yearlyPrice = cfg?.yearlyPrice ?? plan.yearly;
               return (
                 <PlanCard key={plan.key} plan={plan}
-                  price={yearly ? plan.yearly : plan.monthly}
+                  price={yearly ? yearlyPrice : monthlyPrice}
                   period={yearly ? "/yr" : "/mo"}
                   currentPlan={user?.plan || ""}
                   features={features}
@@ -217,9 +219,11 @@ export default function PricingPage() {
             {APPLICANT_PLANS.map((plan) => {
               const cfg = aConfigs[plan.key];
               const { features, disabled } = cfg ? buildApplicantPlan(plan.key, cfg) : { features: [], disabled: [] };
+              const monthlyPrice = cfg?.monthlyPrice ?? plan.monthly;
+              const yearlyPrice = cfg?.yearlyPrice ?? plan.yearly;
               return (
                 <PlanCard key={plan.key} plan={plan}
-                  price={yearly ? plan.yearly : plan.monthly}
+                  price={yearly ? yearlyPrice : monthlyPrice}
                   period={yearly ? "/yr" : "/mo"}
                   currentPlan={user?.plan || ""}
                   features={features}
