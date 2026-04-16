@@ -44,21 +44,23 @@ Humans remain in control of all final hiring decisions.
 
 ## Product Scope & Usage Scenarios
 
-### Scenario 1: Screening Applicants from Umurava Platform
+### Scenario 1: Screening Applicants
 
 **Input:**
 - Job details (role, requirements, skills, experience)
 - Structured talent profiles following Umurava schema
 
 **AI Responsibilities:**
-- Analyze all applicants against job criteria
-- Score and rank candidates using weighted dimensions
+- Analyze all applicants against job criteria using semantic matching (searches for meaning, not just exact text)
+- Score and rank candidates using weighted dimensions (Skills 40%, Experience 30%, Projects 20%, Education 10%)
 - Generate a ranked shortlist (Top 10 or Top 20)
-- Provide clear reasoning for each shortlisted candidate
+- Provide clear reasoning for each shortlisted candidate with natural source attribution (e.g., "from languages", "from work history")
 
 **Constraints:**
 - Strictly follows Umurava Talent Profile Schema
 - AI output is fully explainable with strengths, gaps, and relevance
+- Temperature 0 for deterministic output; scores recomputed server-side
+- 60-second timeout per model with 5-model fallback chain
 
 ### Scenario 2: Screening Applicants from External Job Boards
 
@@ -69,9 +71,16 @@ Humans remain in control of all final hiring decisions.
 
 **AI Responsibilities:**
 - Parse resumes and applicant data
-- Match applicants to job requirements
+- Match applicants to job requirements using intelligent multi-source search (skills[], languages[], bio, cv_text, cover_letter, experience[], projects[])
 - Rank and shortlist Top 10 or 20 candidates
-- Generate explainable reasoning per candidate
+- Generate explainable reasoning per candidate with specific evidence and natural source attribution
+- Validate document quality and content type matching
+
+**Constraints:**
+- Supports flexible CSV formats with 50+ column name variations
+- Falls back to bio field for unrecognized columns
+- Semantic skill matching (e.g., "serving customers" = "customer service")
+- Language requirements checked in languages[] field first before text search
 
 ---
 
@@ -223,9 +232,13 @@ The application provides a complete recruiter-facing interface that supports:
 - **My Applications** — Track all submitted applications and their current status in one place
 
 ### AI Screening Engine
-- **Gemini AI Integration** — Uses `gemini-flash-latest` with automatic fallback through 5 models on quota/availability errors
-- **Multi-model Fallback** — `gemini-flash-latest` → `gemini-pro-latest` → `gemini-3-flash-preview` → `gemini-2.0-flash-lite` → `gemini-2.5-flash-lite`
-- **Timeout Protection** — 30-second timeout per model attempt prevents hanging on slow/unavailable models
+- **Gemini AI Integration** — Uses `gemini-2.5-flash-lite` as primary model with automatic fallback through 5 models on quota/availability errors
+- **Multi-model Fallback** — `gemini-2.5-flash-lite` → `gemini-flash-latest` → `gemini-pro-latest` → `gemini-3-flash-preview` → `gemini-2.0-flash-lite`
+- **Timeout Protection** — 60-second timeout per model attempt prevents hanging on slow/unavailable models
+- **Rate Limit Handling** — Progressive delays (5s, 10s, 15s, 20s) between retries when hitting API quota limits
+- **Semantic Matching** — Intelligent meaning-based matching (e.g., "serving customers" = "customer service", "team player" = "teamwork")
+- **Multi-source Search** — AI searches 10+ data sources: skills[], languages[], bio, cv_text, cover_letter, application_answers[], headline, experience[], projects[], certifications[]
+- **Natural Source Attribution** — Strengths reference sources as "from languages", "from work history", "from education" instead of technical field names
 - **4-Dimension Scoring** — Skills (40%), Experience (30%), Projects (20%), Education (10%)
 - **Deterministic Output** — Temperature set to 0 with server-side score recomputation to guarantee formula consistency
 - **Explainability** — Every candidate gets strengths, gaps, a narrative reason, and a recommendation label
@@ -237,8 +250,11 @@ The application provides a complete recruiter-facing interface that supports:
 
 ### AI Chat Assistant
 - **TalentLink Africa AI Assistant** — In-app chat powered by Gemini, context-aware for both recruiter and applicant workflows
-- **Multi-model fallback** — Tries multiple Gemini models with exponential backoff on rate limits
-- **Privacy-aware** — Never reveals AI scoring details or ranking algorithms to applicants
+- **Multi-model Fallback** — `gemini-2.5-flash-lite` → `gemini-flash-latest` → `gemini-pro-latest` → `gemini-3-flash-preview` → `gemini-2.0-flash-lite`
+- **Optional Authentication** — Works for both authenticated users and guests without requiring login
+- **Rate Limit Handling** — Progressive delays (5s, 10s, 15s, 20s) between retries when hitting API quota limits
+- **Context-Aware** — Understands user role (recruiter, applicant, admin, guest) and provides relevant guidance
+- **Privacy-Aware** — Never reveals AI scoring details or ranking algorithms to applicants
 
 ### Platform & UI
 - **Dark Mode** — Toggle between light and dark themes, persisted in localStorage
@@ -300,7 +316,9 @@ The application provides a complete recruiter-facing interface that supports:
 │  ┌────────────────────────────────────────────────▼──────┐  │
 │  │                    AI Service                         │  │
 │  │  buildPrompt() → Gemini API → parseOutput()           │  │
+│  │  Semantic matching + Multi-source search              │  │
 │  │  Server-side score recomputation → ScreeningResult    │  │
+│  │  Natural source attribution in strengths/gaps         │  │
 │  └───────────────────────────────────────────────────────┘  │
 │                         │                                   │
 └─────────────────────────┼───────────────────────────────────┘
@@ -314,9 +332,10 @@ The application provides a complete recruiter-facing interface that supports:
                           │
 ┌─────────────────────────▼───────────────────────────────────┐
 │                     GEMINI API                              │
-│         gemini-flash-latest (primary model)                 │
-│   Fallback: gemini-pro-latest → gemini-3-flash-preview      │
-│      → gemini-2.0-flash-lite → gemini-2.5-flash-lite        │
+│          gemini-2.5-flash-lite (primary model)              │
+│   Fallback: gemini-flash-latest → gemini-pro-latest         │
+│     gemini-3-flash-preview → gemini-2.0-flash-lite          │
+│   Temperature: 0 | Timeout: 60s | Rate limit: 5-20s delays  │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -325,6 +344,8 @@ The application provides a complete recruiter-facing interface that supports:
 ```
 job_recruiter/
 ├── backend/                        # Node.js + TypeScript REST API
+│   ├── scripts/
+│   │   └── createAdmin.js          # Admin account creation script
 │   └── src/
 │       ├── config/db.ts            # MongoDB Atlas connection
 │       ├── models/
@@ -332,7 +353,11 @@ job_recruiter/
 │       │   ├── Job.ts              # Job listings
 │       │   ├── Candidate.ts        # Candidate profiles (Umurava schema)
 │       │   ├── Application.ts      # Applicant submissions per job
-│       │   └── ScreeningResult.ts  # AI screening output (ranked shortlists)
+│       │   ├── ScreeningResult.ts  # AI screening output (ranked shortlists)
+│       │   ├── Advertisement.ts    # Platform advertisements
+│       │   ├── Payment.ts          # Payment transactions
+│       │   ├── PlanConfig.ts       # Subscription plan configurations
+│       │   └── ApplicantPlanConfig.ts  # Applicant plan settings
 │       ├── controllers/
 │       │   ├── authController.ts
 │       │   ├── jobController.ts
@@ -340,16 +365,36 @@ job_recruiter/
 │       │   ├── screeningController.ts
 │       │   ├── applicationController.ts
 │       │   ├── chatController.ts   # AI chat assistant
-│       │   └── seedController.ts
+│       │   ├── seedController.ts
+│       │   ├── adminController.ts  # Admin management
+│       │   ├── paymentController.ts
+│       │   ├── planController.ts
+│       │   ├── planConfigController.ts
+│       │   └── advertisementController.ts
 │       ├── middleware/
 │       │   ├── auth.ts             # JWT authenticate + requireRole
 │       │   ├── upload.ts           # Multer (PDF/CSV/XLSX)
-│       │   └── errorHandler.ts
+│       │   ├── errorHandler.ts
+│       │   └── planLimits.ts       # Subscription plan limits
 │       ├── routes/
-│       └── services/
-│           ├── aiService.ts        # Gemini screening + multi-model fallback
-│           ├── emailService.ts     # Resend password reset emails
-│           └── parserService.ts    # PDF text extraction, CSV parsing
+│       │   ├── authRoutes.ts
+│       │   ├── jobRoutes.ts
+│       │   ├── candidateRoutes.ts
+│       │   ├── screeningRoutes.ts
+│       │   ├── applicationRoutes.ts
+│       │   ├── chatRoutes.ts
+│       │   ├── seedRoutes.ts
+│       │   ├── adminRoutes.ts
+│       │   ├── paymentRoutes.ts
+│       │   ├── planRoutes.ts
+│       │   └── advertisementRoutes.ts
+│       ├── services/
+│       │   ├── aiService.ts        # Gemini screening + multi-model fallback
+│       │   ├── emailService.ts     # Resend password reset emails
+│       │   ├── parserService.ts    # PDF text extraction, CSV parsing
+│       │   └── paypackService.ts   # Payment gateway integration
+│       └── types/
+│           └── index.ts            # TypeScript type definitions
 │
 └── frontend/                       # Next.js 14 + Tailwind + Redux
     ├── app/
@@ -357,6 +402,8 @@ job_recruiter/
     │   ├── about/
     │   ├── pricing/
     │   ├── contact/
+    │   ├── home/
+    │   ├── upgrade/                # Plan upgrade page
     │   ├── auth/login/
     │   ├── auth/register/
     │   ├── auth/forgot-password/
@@ -365,9 +412,19 @@ job_recruiter/
     │   ├── board/[id]/             # Job detail + application form
     │   ├── jobs/                   # Recruiter job management
     │   ├── jobs/[id]/              # Job detail + Applications + AI Screening tabs
+    │   ├── jobs/new/               # Create new job
     │   ├── candidates/             # Candidate pool
+    │   ├── applications/[id]/      # Application detail
+    │   ├── screening/[job_id]/     # Screening results page
     │   ├── my-applications/        # Applicant's applications
-    │   └── profile/
+    │   ├── profile/                # User profile
+    │   └── admin/                  # Admin dashboard
+    │       ├── users/              # User management
+    │       ├── jobs/               # Job management
+    │       ├── applications/       # Application management
+    │       ├── subscriptions/      # Subscription management
+    │       ├── plans/              # Plan configuration
+    │       └── ads/                # Advertisement management
     ├── components/
     │   ├── applications/ApplicationsPanel.tsx
     │   ├── candidates/CandidateSelector.tsx
@@ -376,11 +433,21 @@ job_recruiter/
     │   ├── jobs/JobCard.tsx
     │   ├── screening/ShortlistTable.tsx
     │   ├── screening/CandidateModal.tsx  # Full-viewport portal modal
-    │   └── ui/Navbar.tsx, Badge.tsx, ScoreBar.tsx, AuthLoader.tsx, ThemeControls.tsx, Footer.tsx
+    │   ├── landing/                # Landing page components
+    │   ├── ui/Navbar.tsx, Badge.tsx, ScoreBar.tsx, AuthLoader.tsx, ThemeControls.tsx, Footer.tsx, AdBanner.tsx
+    │   └── ClientWrapper.tsx       # Client-side wrapper component
     ├── context/ThemeContext.tsx    # Dark mode + accent color
-    ├── store/slices/               # Redux Toolkit: auth, jobs, candidates, screening, applications
+    ├── store/
+    │   ├── slices/                 # Redux Toolkit slices
+    │   │   ├── authSlice.ts
+    │   │   ├── jobsSlice.ts
+    │   │   ├── candidatesSlice.ts
+    │   │   ├── screeningSlice.ts
+    │   │   └── applicationsSlice.ts
+    │   ├── hooks.ts                # Redux hooks
+    │   └── index.ts                # Store configuration
     ├── lib/api.ts                  # Axios client with JWT interceptor
-    └── types/index.ts
+    └── types/index.ts              # TypeScript type definitions
 ```
 
 ---
@@ -392,14 +459,23 @@ job_recruiter/
 2. Structured candidate profiles are loaded from the talent pool (or seeded via `/api/seed/candidates`)
 3. Recruiter selects candidates and triggers AI screening
 4. Backend sends job + candidates to Gemini with a strict deterministic prompt
-5. Gemini returns a ranked JSON shortlist; scores are recomputed server-side to guarantee formula accuracy
+5. Gemini analyzes candidates using semantic matching across all fields (skills[], languages[], bio, cv_text, experience[], projects[])
+6. AI provides qualitative insights (strengths with natural source attribution, gaps, reasoning)
+7. Scores are computed deterministically server-side using algorithmic formulas (Skills 40%, Experience 30%, Projects 20%, Education 10%)
+8. Candidates are ranked and re-sorted by match_score
+9. Recommendation labels derived from score thresholds (80-100: Strongly Recommend, 60-79: Recommend, 40-59: Consider, 0-39: Do Not Recommend)
 
 ### Scenario 2 — External Job Board Applicants
 1. Job is published to `/board`
 2. Applicants register, browse, and submit structured applications with documents
 3. Each application auto-creates/updates a Candidate record in the pool
 4. Recruiter clicks "Screen Applicants" — matched candidates are auto-loaded for AI screening
-5. Uploaded documents (CV, portfolio, certificates) are parsed and included as evidence in the AI prompt
+5. Uploaded documents (CV, portfolio, certificates) are parsed and included as evidence
+6. AI searches EVERYWHERE in candidate profiles: skills[], languages[], bio, cv_text, cover_letter, application_answers[], experience[], projects[], certifications[]
+7. AI validates document quality and content type matching (wrong type = -8 points, missing = -10 points)
+8. Semantic skill matching applied (e.g., "serving customers" matches "customer service", "team player" matches "teamwork")
+9. Language requirements checked in languages[] field FIRST before searching text fields
+10. Scores computed server-side; candidates ranked with natural source attribution in strengths (e.g., "from languages", "from work history")
 
 ### Gemini Scoring Model
 
@@ -455,9 +531,9 @@ Each candidate in the shortlist receives:
     "education": 75
   },
   "strengths": [
-    "5 years of Node.js experience with Advanced proficiency matches the Senior Backend Engineer requirement perfectly",
-    "Led 3 production projects using TypeScript, MongoDB, and Express – exact tech stack for this role",
-    "Bachelor's in Computer Science from University of Rwanda with AWS Certified Developer certification"
+    "5 years of Node.js experience with Advanced proficiency matches the Senior Backend Engineer requirement perfectly (from work history)",
+    "Led 3 production projects using TypeScript, MongoDB, and Express – exact tech stack for this role (from projects)",
+    "Bachelor's in Computer Science from University of Rwanda with AWS Certified Developer certification (from education and certifications)"
   ],
   "gaps": [
     "Missing preferred skill: Docker (mentioned in job description)",
@@ -495,21 +571,29 @@ Gemini follows strict algorithmic rubrics — not free-form judgment:
 Gemini computes the weighted formula. The backend then **recomputes** the score independently from the breakdown to guarantee formula consistency regardless of any Gemini rounding.
 
 **STEP 5 — Output Generation**
-Strengths must reference specific skill names, job titles, companies, or project names. Gaps must list every missing required skill and every missing/low-quality required document. Reason is exactly 2–3 sentences.
+Strengths must reference specific skill names, job titles, companies, or project names with natural source attribution (e.g., "from languages", "from work history", "from education"). Gaps must list every missing required skill and every missing/low-quality required document. Reason is exactly 2–3 sentences.
+
+**Source Attribution:**
+- Uses natural, readable source names: "from languages", "from work history", "from education", "from skills", "from certifications", "from cover letter", "from resume", "from projects"
+- Avoids technical field names like `languages[]`, `experience[]`, `skills[]`
+- Makes reports professional and user-friendly
 
 **Determinism Guarantees:**
 - `temperature: 0` — no randomness in Gemini output
 - Server-side recomputation — scores are always recalculated from breakdown
 - Re-ranking server-side — candidates are re-sorted and re-ranked after recomputation
 - Structured JSON output only — no markdown, no free-form text outside JSON
+- 60-second timeout per model with automatic fallback to next model
+- Progressive rate limit delays (5s, 10s, 15s, 20s) when quota exceeded
 
 ### Explainability Principles
-- Gemini references actual skills, job titles, and project names — no vague statements
+- Gemini references actual skills, job titles, and project names with natural source attribution — no vague statements
 - Missing data is explicitly flagged and scored low
 - All output is structured JSON — no free-form hallucination
 - Temperature set to 0; scores recomputed server-side for full determinism
-- Multi-model fallback: 5 Gemini models tried sequentially with 30s timeout each
-- Models verified via API: `gemini-flash-latest`, `gemini-pro-latest`, `gemini-3-flash-preview`, `gemini-2.0-flash-lite`, `gemini-2.5-flash-lite`
+- Multi-model fallback: 5 Gemini models tried sequentially with 60s timeout each
+- Models verified via API: `gemini-2.5-flash-lite`, `gemini-flash-latest`, `gemini-pro-latest`, `gemini-3-flash-preview`, `gemini-2.0-flash-lite`
+- Progressive rate limit handling with 5-20 second delays between retries
 
 ---
 
@@ -526,8 +610,8 @@ Strengths must reference specific skill names, job titles, companies, or project
 ```bash
 cd backend
 npm install
-cp .env.example .env
-# Fill in MONGODB_URI, GEMINI_API_KEY, JWT_SECRET, RESEND_API_KEY
+# Create .env file with the following variables:
+# MONGODB_URI, GEMINI_API_KEY, JWT_SECRET, RESEND_API_KEY, RESEND_FROM, CLIENT_URL, PORT
 npm run dev
 ```
 
@@ -646,12 +730,17 @@ NEXT_PUBLIC_API_URL=http://localhost:5000/api
 
 ### Gemini API Integration
 
-**Primary Model:** `gemini-flash-latest`  
-**Fallback Chain:** `gemini-pro-latest` → `gemini-3-flash-preview` → `gemini-2.0-flash-lite` → `gemini-2.5-flash-lite`  
+**Primary Model:** `gemini-2.5-flash-lite`  
+**Fallback Chain:** `gemini-flash-latest` → `gemini-pro-latest` → `gemini-3-flash-preview` → `gemini-2.0-flash-lite`  
 **Temperature:** 0 (deterministic output)  
+**Timeout:** 60 seconds per model attempt  
+**Rate Limit Handling:** Progressive delays (5s, 10s, 15s, 20s) between retries  
 **Prompt Engineering:** 5-step structured prompt with algorithmic scoring rubrics  
+**Semantic Matching:** Intelligent meaning-based matching (e.g., "serving customers" = "customer service")  
+**Multi-source Search:** Searches 10+ data sources including skills[], languages[], bio, cv_text, cover_letter, experience[], projects[]  
+**Natural Source Attribution:** Strengths reference sources as "from languages", "from work history", "from education"  
 **Output Format:** Structured JSON only (no markdown, no free-form text)  
-**Multi-model Resilience:** Automatically tries 5 different Gemini models with 30-second timeout per model to ensure high availability
+**Multi-model Resilience:** Automatically tries 5 different Gemini models with 60-second timeout per model to ensure high availability
 
 ---
 
