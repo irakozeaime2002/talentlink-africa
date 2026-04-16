@@ -90,7 +90,7 @@ export default function JobDetailPage() {
     // Preload ALL data when page loads for instant tab switching
     dispatch(loadJobs());
     dispatch(loadJobApplications({ jobId: id, page: 1, limit: 50 }));
-    dispatch(loadScreeningResults(id)); // Preload screening results
+    dispatch(loadScreeningResults({ job_id: id })); // Preload screening results
     refreshApplicantCandidates(); // Preload candidates
   }, [dispatch, id, refreshApplicantCandidates]); // Load once when page mounts
 
