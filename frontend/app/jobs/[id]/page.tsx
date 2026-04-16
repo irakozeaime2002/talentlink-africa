@@ -43,6 +43,9 @@ export default function JobDetailPage() {
   const [hasMoreCandidates, setHasMoreCandidates] = useState(false);
 
   const refreshApplicantCandidates = useCallback((forceRefresh = false, loadMore = false) => {
+    // Don't load if job doesn't exist yet
+    if (!id) return;
+    
     const CACHE_DURATION = 3 * 60 * 1000; // 3 minutes
     const now = Date.now();
     
@@ -105,8 +108,14 @@ export default function JobDetailPage() {
     dispatch(loadJobs());
     dispatch(loadJobApplications({ jobId: id, page: 1, limit: 50 }));
     dispatch(loadScreeningResults({ job_id: id })); // Preload screening results
-    refreshApplicantCandidates(); // Preload candidates
-  }, [dispatch, id, refreshApplicantCandidates]); // Load once when page mounts
+  }, [dispatch, id]); // Load once when page mounts
+
+  // Load candidates after job is loaded
+  useEffect(() => {
+    if (job && applicantCandidates.length === 0 && !loadingCandidates && !candidatesCache) {
+      refreshApplicantCandidates();
+    }
+  }, [job, applicantCandidates.length, loadingCandidates, candidatesCache, refreshApplicantCandidates]);
 
   const handleScreenApplicants = async () => {
     try {
