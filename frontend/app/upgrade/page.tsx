@@ -1,35 +1,39 @@
 "use client";
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useAppSelector } from "../../store/hooks";
 import { Check, CreditCard, Lock, ArrowLeft } from "lucide-react";
 import toast from "react-hot-toast";
 import Link from "next/link";
-import { upgradePlan } from "../../lib/api";
+import { upgradePlan, fetchPublicPlanConfigs, fetchPublicApplicantPlanConfigs } from "../../lib/api";
 import { useAppDispatch } from "../../store/hooks";
 import { loadMe } from "../../store/slices/authSlice";
 import Cookies from "js-cookie";
 
-const PLANS: Record<string, { name: string; monthly: number; yearly: number; features: string[] }> = {
-  recruiter_pro: {
-    name: "Recruiter Pro",
-    monthly: 10000,
-    yearly: 80000,
-    features: ["Unlimited job posts", "Unlimited AI screenings", "CSV & XLSX bulk import", "PDF resume bulk upload", "Priority support"],
-  },
-  recruiter_enterprise: {
-    name: "Recruiter Enterprise",
-    monthly: 30000,
-    yearly: 240000,
-    features: ["Everything in Pro", "Dedicated account manager", "Custom AI scoring", "API access", "SLA guarantee"],
-  },
-  applicant_pro: {
-    name: "Applicant Pro",
-    monthly: 5000,
-    yearly: 40000,
-    features: ["Unlimited job applications", "Unlimited CV uploads", "Profile highlighted to recruiters", "Priority application review"],
-  },
-};
+interface RecruiterConfig { plan: string; maxJobs: number; maxScreeningsPerMonth: number; csvUpload: boolean; resumeUpload: boolean; monthlyPrice: number; yearlyPrice: number; }
+interface ApplicantConfig { plan: string; maxApplications: number; maxCVUploads: number; profileHighlight: boolean; monthlyPrice: number; yearlyPrice: number; }
+
+function buildFeatures(planKey: string, config: RecruiterConfig | ApplicantConfig | null): string[] {
+  if (!config) return [];
+  const features: string[] = [];
+  
+  if ('maxJobs' in config) {
+    // Recruiter plan
+    features.push(config.maxJobs === -1 ? "Unlimited job posts" : `${config.maxJobs} active job posts`);
+    features.push(config.maxScreeningsPerMonth === -1 ? "Unlimited AI screenings" : `${config.maxScreeningsPerMonth} AI screenings/month`);
+    if (config.csvUpload) features.push("CSV & XLSX bulk import");
+    if (config.resumeUpload) features.push("PDF resume bulk upload");
+    features.push("Priority support");
+  } else {
+    // Applicant plan
+    features.push(config.maxApplications === -1 ? "Unlimited job applications" : `${config.maxApplications} job applications/month`);
+    features.push(config.maxCVUploads === -1 ? "Unlimited CV uploads" : `${config.maxCVUploads} CV uploads`);
+    if (config.profileHighlight) features.push("Profile highlighted to recruiters");
+    features.push("Priority application review");
+  }
+  
+  return features;
+}
 
 const PAYMENT_METHODS = [
   { id: "mtn",    label: "MTN Mobile Money",   icon: "📱", placeholder: "07X XXX XXXX" },
@@ -44,16 +48,46 @@ function UpgradeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const planKey = searchParams.get("plan") || "recruiter_pro";
-  const plan = PLANS[planKey] || PLANS.recruiter_pro;
 
   const [billing, setBilling] = useState<"monthly" | "yearly">("monthly");
   const [payMethod, setPayMethod] = useState("mtn");
   const [phone, setPhone] = useState("");
   const [processing, setProcessing] = useState(false);
   const [done, setDone] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [planConfig, setPlanConfig] = useState<RecruiterConfig | ApplicantConfig | null>(null);
 
-  const price = billing === "yearly" ? plan.yearly : plan.monthly;
-  const saving = plan.monthly * 12 - plan.yearly;
+  useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        if (planKey.startsWith("applicant")) {
+          const configs = await fetchPublicApplicantPlanConfigs();
+          const config = configs.find((c: ApplicantConfig) => c.plan === "pro");
+          setPlanConfig(config || null);
+        } else {
+          const configs = await fetchPublicPlanConfigs();
+          const plan = planKey === "recruiter_enterprise" ? "enterprise" : "pro";
+          const config = configs.find((c: RecruiterConfig) => c.plan === plan);
+          setPlanConfig(config || null);
+        }
+      } catch (err) {
+        toast.error("Failed to load plan details");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchConfig();
+  }, [planKey]);
+
+  const planName = planKey === "recruiter_pro" ? "Recruiter Pro" 
+    : planKey === "recruiter_enterprise" ? "Recruiter Enterprise" 
+    : "Applicant Pro";
+  
+  const price = planConfig ? (billing === "yearly" ? planConfig.yearlyPrice : planConfig.monthlyPrice) : 0;
+  const monthlyPrice = planConfig?.monthlyPrice || 0;
+  const yearlyPrice = planConfig?.yearlyPrice || 0;
+  const saving = monthlyPrice * 12 - yearlyPrice;
+  const features = buildFeatures(planKey, planConfig);
 
   const handlePay = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,7 +108,7 @@ function UpgradeContent() {
       await dispatch(loadMe());
 
       setDone(true);
-      toast.success(`🎉 Upgraded to ${plan.name} successfully!`);
+      toast.success(`🎉 Upgraded to ${planName} successfully!`);
     } catch (err: any) {
       toast.error(err.message || "Payment failed. Please try again.");
     } finally {
@@ -85,6 +119,18 @@ function UpgradeContent() {
   if (!user) {
     router.push("/auth/login");
     return null;
+  }
+
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto py-8 space-y-6 animate-pulse">
+        <div className="h-6 bg-gray-100 dark:bg-white/10 rounded w-32" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="glass-card p-6 h-96" />
+          <div className="glass-card p-6 h-96" />
+        </div>
+      </div>
+    );
   }
 
   if (done) {
@@ -113,7 +159,7 @@ function UpgradeContent() {
         <div className="glass-card p-6 space-y-5">
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-1">Upgrading to</p>
-            <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white">{plan.name}</h1>
+            <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white">{planName}</h1>
           </div>
 
           {/* Billing toggle */}
@@ -141,7 +187,7 @@ function UpgradeContent() {
 
           {/* Features */}
           <ul className="space-y-2.5">
-            {plan.features.map((f) => (
+            {features.map((f) => (
               <li key={f} className="flex items-center gap-2.5 text-sm text-gray-600 dark:text-gray-300">
                 <Check size={15} className="shrink-0" style={{ color: "var(--accent)" }} /> {f}
               </li>
@@ -199,7 +245,7 @@ function UpgradeContent() {
             <div className="rounded-xl p-4 text-sm space-y-1" style={{ background: "var(--accent-light)" }}>
               <p className="font-semibold" style={{ color: "var(--accent)" }}>Order Summary</p>
               <div className="flex justify-between text-gray-600 dark:text-gray-300">
-                <span>{plan.name} ({billing})</span>
+                <span>{planName} ({billing})</span>
                 <span className="font-bold">RWF {price.toLocaleString()}</span>
               </div>
             </div>
