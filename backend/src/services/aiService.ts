@@ -951,7 +951,7 @@ export const screenCandidates = async (
       });
       
       const timeoutPromise = new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('Model timeout after 30s')), 30000)
+        setTimeout(() => reject(new Error('Model timeout after 60s')), 60000)
       );
       
       const generatePromise = model.generateContent(prompt);
@@ -964,17 +964,19 @@ export const screenCandidates = async (
     } catch (err: any) {
       const msg = err.message || '';
       const is429 = msg.includes('429') || msg.toLowerCase().includes('quota') || msg.toLowerCase().includes('rate');
-      console.warn(`[AI] ✗ ${modelName} failed${is429 ? ' (rate limit)' : ''}: ${msg.slice(0, 150)}`);
+      const isTimeout = msg.toLowerCase().includes('timeout');
+      console.warn(`[AI] ✗ ${modelName} failed${is429 ? ' (rate limit)' : isTimeout ? ' (timeout)' : ''}: ${msg.slice(0, 150)}`);
       lastError = err;
       
-      // Add progressive delay for rate limits
+      // Add progressive delay for rate limits - longer delays
       if (is429 && i < MODELS.length - 1) {
-        const delay = (i + 1) * 3000;
+        const delay = (i + 1) * 5000;
         console.log(`[AI] Rate limit hit. Waiting ${delay}ms before trying next model...`);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
   }
 
-  throw new Error(`All models failed. Last: ${lastError.message?.slice(0, 150)}`);
+  console.error("[AI] All models failed. Last error:", lastError);
+  throw new Error(`All AI models failed. ${lastError.message?.includes('429') ? 'Rate limit exceeded - please try again in a few minutes.' : 'Please try again later.'}`);
 };
