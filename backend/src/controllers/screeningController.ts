@@ -99,15 +99,14 @@ export const runScreening = async (req: Request, res: Response, next: NextFuncti
     const applications = await Application.find({ job_id });
     console.log(`[Screening] Found ${applications.length} applications`);
 
-    const emailToAppData: Record<string, {
+    const applicantIdToAppData: Record<string, {
       cover_letter: string;
       answers: { question: string; answer: string }[];
       documents: { name: string; text: string }[];
     }> = {};
 
     for (const app of applications) {
-      const user = await User.findById(app.applicant_id).select("email");
-      if (!user?.email) continue;
+      const applicantId = app.applicant_id.toString();
 
       // Try to extract text from each uploaded document (CV, certificates, etc)
       // We send this text to the AI so it can validate document quality
@@ -121,14 +120,14 @@ export const runScreening = async (req: Request, res: Response, next: NextFuncti
         } catch {}
       }
 
-      emailToAppData[user.email] = {
+      applicantIdToAppData[applicantId] = {
         cover_letter: app.cover_letter || "",
         answers: app.answers || [],
         documents: docTexts,
       };
     }
 
-    console.log(`[Screening] Prepared application data for ${Object.keys(emailToAppData).length} applicants`);
+    console.log(`[Screening] Prepared application data for ${Object.keys(applicantIdToAppData).length} applicants`);
 
     const jobInput: JobInput = {
       title: job.title,
@@ -142,7 +141,7 @@ export const runScreening = async (req: Request, res: Response, next: NextFuncti
     };
 
     const candidateInputs: CandidateInput[] = candidates.map((c) => {
-      const appData = c.email ? emailToAppData[c.email] : undefined;
+      const appData = c.applicant_id ? applicantIdToAppData[c.applicant_id.toString()] : undefined;
       // Decode the CV from base64 if they uploaded one
       // Limit to 4000 chars to keep the prompt size reasonable
       let cvText: string | undefined;

@@ -60,7 +60,7 @@ Humans remain in control of all final hiring decisions.
 - Strictly follows Umurava Talent Profile Schema
 - AI output is fully explainable with strengths, gaps, and relevance
 - Temperature 0 for deterministic output; scores recomputed server-side
-- 60-second timeout per model with 5-model fallback chain
+- Instant failover across 5-model fallback chain with no artificial timeouts
 
 ### Scenario 2: Screening Applicants from External Job Boards
 
@@ -243,8 +243,8 @@ The application provides a complete recruiter-facing interface that supports:
 ### AI Screening Engine
 - **Gemini AI Integration** — Uses `gemini-2.5-flash-lite` as primary model with automatic fallback through 5 models on quota/availability errors
 - **Multi-model Fallback** — `gemini-2.5-flash-lite` → `gemini-flash-latest` → `gemini-pro-latest` → `gemini-3-flash-preview` → `gemini-2.0-flash-lite`
-- **Timeout Protection** — 60-second timeout per model attempt prevents hanging on slow/unavailable models
-- **Rate Limit Handling** — Progressive delays (5s, 10s, 15s, 20s) between retries when hitting API quota limits
+- **Instant Failover** — Immediately switches to next model on any failure (rate limit, timeout, error) with zero delays
+- **No Artificial Timeouts** — Lets each model respond at its natural speed; only Gemini API's internal timeout applies
 - **Semantic Matching** — Intelligent meaning-based matching (e.g., "serving customers" = "customer service", "team player" = "teamwork")
 - **Multi-source Search** — AI searches 10+ data sources: skills[], languages[], bio, cv_text, cover_letter, application_answers[], headline, experience[], projects[], certifications[]
 - **Natural Source Attribution** — Strengths reference sources as "from languages", "from work history", "from education" instead of technical field names
@@ -343,7 +343,7 @@ The application provides a complete recruiter-facing interface that supports:
 │          gemini-2.5-flash-lite (primary model)              │
 │   Fallback: gemini-flash-latest → gemini-pro-latest         │
 │     gemini-3-flash-preview → gemini-2.0-flash-lite          │
-│   Temperature: 0 | Timeout: 60s | Rate limit: 5-20s delays  │
+│   Temperature: 0 | Instant failover | No artificial timeouts │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -591,17 +591,17 @@ Strengths must reference specific skill names, job titles, companies, or project
 - Server-side recomputation — scores are always recalculated from breakdown
 - Re-ranking server-side — candidates are re-sorted and re-ranked after recomputation
 - Structured JSON output only — no markdown, no free-form text outside JSON
-- 60-second timeout per model with automatic fallback to next model
-- Progressive rate limit delays (5s, 10s, 15s, 20s) when quota exceeded
+- Instant failover to next model on any failure with zero delays
+- No artificial timeouts — uses Gemini API's natural response time
 
 ### Explainability Principles
 - Gemini references actual skills, job titles, and project names with natural source attribution — no vague statements
 - Missing data is explicitly flagged and scored low
 - All output is structured JSON — no free-form hallucination
 - Temperature set to 0; scores recomputed server-side for full determinism
-- Multi-model fallback: 5 Gemini models tried sequentially with 60s timeout each
+- Multi-model fallback: 5 Gemini models tried sequentially with instant failover
 - Models verified via API: `gemini-2.5-flash-lite`, `gemini-flash-latest`, `gemini-pro-latest`, `gemini-3-flash-preview`, `gemini-2.0-flash-lite`
-- Progressive rate limit handling with 5-20 second delays between retries
+- No artificial timeouts or delays — immediate model switching on any failure
 
 ---
 
@@ -775,14 +775,14 @@ NEXT_PUBLIC_API_URL=http://localhost:5000/api
 **Primary Model:** `gemini-2.5-flash-lite`  
 **Fallback Chain:** `gemini-flash-latest` → `gemini-pro-latest` → `gemini-3-flash-preview` → `gemini-2.0-flash-lite`  
 **Temperature:** 0 (deterministic output)  
-**Timeout:** 60 seconds per model attempt  
-**Rate Limit Handling:** Progressive delays (5s, 10s, 15s, 20s) between retries  
+**Failover Strategy:** Instant model switching on any failure with zero delays  
+**Timeout:** No artificial timeouts; uses Gemini API's natural response time  
 **Prompt Engineering:** 5-step structured prompt with algorithmic scoring rubrics  
 **Semantic Matching:** Intelligent meaning-based matching (e.g., "serving customers" = "customer service")  
 **Multi-source Search:** Searches 10+ data sources including skills[], languages[], bio, cv_text, cover_letter, experience[], projects[]  
 **Natural Source Attribution:** Strengths reference sources as "from languages", "from work history", "from education"  
 **Output Format:** Structured JSON only (no markdown, no free-form text)  
-**Multi-model Resilience:** Automatically tries 5 different Gemini models with 60-second timeout per model to ensure high availability
+**Multi-model Resilience:** Automatically tries 5 different Gemini models with instant failover to ensure high availability
 
 ---
 

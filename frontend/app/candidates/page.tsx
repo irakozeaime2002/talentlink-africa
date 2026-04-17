@@ -85,15 +85,31 @@ export default function CandidatesPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Remove this candidate?")) return;
-    await dispatch(removeCandidate(id));
-    toast.success("Candidate removed");
+    
+    if (activeTab === "imported") {
+      await dispatch(removeCandidate(id));
+      toast.success("Candidate removed");
+    } else {
+      // For applicants, remove from local state
+      setApplicants(prev => prev.filter(c => c._id !== id));
+      await dispatch(removeCandidate(id));
+      toast.success("Candidate removed");
+    }
   };
 
   const handleBulkDelete = async () => {
     if (selectedIds.length === 0) return;
     if (!confirm(`Delete ${selectedIds.length} selected candidate(s)?`)) return;
-    await dispatch(bulkRemoveCandidates(selectedIds));
-    toast.success(`${selectedIds.length} candidate(s) deleted`);
+    
+    if (activeTab === "imported") {
+      await dispatch(bulkRemoveCandidates(selectedIds));
+      toast.success(`${selectedIds.length} candidate(s) deleted`);
+    } else {
+      // For applicants, remove from local state
+      setApplicants(prev => prev.filter(c => !selectedIds.includes(c._id)));
+      await dispatch(bulkRemoveCandidates(selectedIds));
+      toast.success(`${selectedIds.length} candidate(s) deleted`);
+    }
     setSelectedIds([]);
   };
 
@@ -102,7 +118,7 @@ export default function CandidatesPage() {
   };
 
   const toggleSelectAll = () => {
-    const currentList = activeTab === "imported" ? filteredPool : [];
+    const currentList = activeTab === "imported" ? filteredPool : filteredApplicants;
     if (selectedIds.length === currentList.length && currentList.length > 0) {
       setSelectedIds([]);
     } else {
@@ -294,7 +310,7 @@ export default function CandidatesPage() {
         <Filter size={15} className="text-gray-400 shrink-0" />
 
         {/* Bulk actions */}
-        {activeTab === "imported" && selectedIds.length > 0 && (
+        {selectedIds.length > 0 && (
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border-2 shrink-0"
             style={{ borderColor: "var(--accent)", background: "var(--accent-light)" }}>
             <span className="text-sm font-semibold" style={{ color: "var(--accent)" }}>
@@ -309,15 +325,15 @@ export default function CandidatesPage() {
         )}
 
         {/* Select all */}
-        {activeTab === "imported" && filteredPool.length > 0 && (
+        {(activeTab === "imported" ? filteredPool.length : filteredApplicants.length) > 0 && (
           <button onClick={toggleSelectAll}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border dark:border-white/10 hover:border-gray-300 dark:hover:border-white/20 transition">
-            {selectedIds.length === filteredPool.length && filteredPool.length > 0 ? (
+            {selectedIds.length === (activeTab === "imported" ? filteredPool.length : filteredApplicants.length) && (activeTab === "imported" ? filteredPool.length : filteredApplicants.length) > 0 ? (
               <CheckSquare size={14} style={{ color: "var(--accent)" }} />
             ) : (
               <Square size={14} className="text-gray-400" />
             )}
-            {selectedIds.length === filteredPool.length && filteredPool.length > 0 ? "Deselect All" : "Select All"}
+            {selectedIds.length === (activeTab === "imported" ? filteredPool.length : filteredApplicants.length) && (activeTab === "imported" ? filteredPool.length : filteredApplicants.length) > 0 ? "Deselect All" : "Select All"}
           </button>
         )}
 
@@ -394,7 +410,7 @@ export default function CandidatesPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {activeTab === "applicants"
-            ? filteredApplicants.map((c) => <CandidateCard key={c._id} c={c} />)
+            ? filteredApplicants.map((c) => <CandidateCard key={c._id} c={c} showDelete />)
             : filteredPool.map((c) => <CandidateCard key={c._id} c={c as EnrichedCandidate} showDelete />)}
         </div>
       )}

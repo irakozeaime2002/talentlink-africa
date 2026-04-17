@@ -61,6 +61,8 @@ export interface ICandidate extends Document {
   source: "profile" | "csv" | "resume";
   recruiter_id?: Schema.Types.ObjectId;
   job_id?: Schema.Types.ObjectId;
+  applicant_id?: Schema.Types.ObjectId;
+  import_id?: string; // Unique ID for CSV/PDF imports (since they don't have applicant_id)
   cv_filename?: string;
   cv_data?: string;
 }
@@ -137,6 +139,8 @@ const CandidateSchema = new Schema<ICandidate>(
     source: { type: String, enum: ["profile", "csv", "resume"], default: "profile" },
     recruiter_id: { type: Schema.Types.ObjectId, ref: "User" },
     job_id: { type: Schema.Types.ObjectId, ref: "Job" },
+    applicant_id: { type: Schema.Types.ObjectId, ref: "User" },
+    import_id: { type: String, unique: true, sparse: true }, // Unique ID for imports
     cv_filename: String,
     cv_data: String,
   },

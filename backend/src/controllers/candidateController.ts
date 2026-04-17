@@ -112,8 +112,17 @@ export const uploadCSV = async (req: Request, res: Response, next: NextFunction)
     if (!req.file) { res.status(400).json({ error: "No file uploaded" }); return; }
     const { job_id } = req.body;
     const parsed = parseCSV(req.file.buffer);
+    const recId = recruiterId(req);
+    const timestamp = Date.now();
+    
     const candidates = await Candidate.insertMany(
-      parsed.map((c) => ({ ...c, source: "csv", recruiter_id: recruiterId(req), ...(job_id ? { job_id } : {}) }))
+      parsed.map((c, index) => ({
+        ...c,
+        source: "csv",
+        recruiter_id: recId,
+        import_id: `csv-${recId}-${timestamp}-${index}`, // Unique ID for this import
+        ...(job_id ? { job_id } : {})
+      }))
     );
     res.status(201).json({ inserted: candidates.length, candidates });
   } catch (err) { next(err); }
@@ -134,6 +143,9 @@ export const uploadResumes = async (req: Request, res: Response, next: NextFunct
     const files = req.files as Express.Multer.File[];
     if (!files || files.length === 0) { res.status(400).json({ error: "No files uploaded" }); return; }
     const { job_id } = req.body;
+    const recId = recruiterId(req);
+    const timestamp = Date.now();
+    
     const parsed = await Promise.all(
       files.map(async (file, i) => {
         const text = await parsePDF(file.buffer);
@@ -141,7 +153,13 @@ export const uploadResumes = async (req: Request, res: Response, next: NextFunct
       })
     );
     const candidates = await Candidate.insertMany(
-      parsed.map((c) => ({ ...c, source: "resume", recruiter_id: recruiterId(req), ...(job_id ? { job_id } : {}) }))
+      parsed.map((c, index) => ({
+        ...c,
+        source: "resume",
+        recruiter_id: recId,
+        import_id: `resume-${recId}-${timestamp}-${index}`, // Unique ID for this import
+        ...(job_id ? { job_id } : {})
+      }))
     );
     res.status(201).json({ inserted: candidates.length, candidates });
   } catch (err) { next(err); }

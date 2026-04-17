@@ -780,7 +780,39 @@ Reference SPECIFIC evidence from their profile with natural source attribution:
   • "AWS Certified Developer certification (from certifications)"
 - Use natural source names: "from languages", "from work history", "from education", "from skills", "from certifications", "from cover letter", "from resume", "from bio"
 
-### PRIORITY 3: REASON (2-3 sentences with context)
+### PRIORITY 3: GAPS (Be comprehensive and helpful)
+**CRITICAL: Always provide meaningful gaps analysis, even if all requirements are met**
+
+For candidates scoring below 90%, identify improvement areas:
+
+✓ **Missing Requirements (if any):**
+   - List EVERY missing required skill: "Missing required skill: [skill name]"
+   - List EVERY missing required document: "Missing required document: [document name]"
+   - List unanswered questions: "Did not answer: [question]"
+
+✓ **Weak Areas (even if requirements met):**
+   - Limited experience: "Only [X] years experience for [level] role (typically needs [Y]+ years)"
+   - Skill proficiency: "[Skill] listed as Beginner/Intermediate (Advanced/Expert preferred)"
+   - Lack of projects: "No portfolio projects demonstrating [skill] in practice"
+   - Education mismatch: "Degree in [field] not directly related to [job field]"
+   - Missing preferred skills: "Would benefit from [preferred skill] experience"
+
+✓ **Quality Issues:**
+   - Vague answers: "Application answer to '[question]' lacks specific examples"
+   - Incomplete profile: "No certifications listed (industry certifications would strengthen profile)"
+   - Generic experience: "Work descriptions lack specific achievements or metrics"
+
+✓ **Improvement Suggestions:**
+   - "Could strengthen profile with [specific certification]"
+   - "Would benefit from more detailed project descriptions"
+   - "Consider adding quantifiable achievements to work history"
+
+**Examples:**
+- Score 70/100: ["Missing required skill: Docker", "Only 2 years experience for Senior role (typically needs 5+ years)", "No portfolio projects demonstrating AWS in practice", "Would benefit from Kubernetes experience"]
+- Score 85/100: ["Python listed as Intermediate (Advanced preferred for this role)", "Would benefit from more detailed project descriptions", "Consider adding industry certifications"]
+- Score 95/100: ["All requirements met", "Could strengthen profile with additional certifications"]
+
+### PRIORITY 4: REASON (2-3 sentences with context)
 - Sentence 1: How many required skills matched vs total required
 - Sentence 2: Best matching qualification with specific evidence
 - Sentence 3: Main gap or concern (if any), or additional strength
@@ -831,7 +863,9 @@ Reference SPECIFIC evidence from their profile with natural source attribution:
   ]
 }
 
-Analyze ALL ${candidates.length} candidates focusing on SEMANTIC requirement matching with natural source attribution.`;
+**CRITICAL: You MUST analyze and return ALL ${candidates.length} candidates in the ranking array.**
+**Do NOT limit to top 5 or top 10 - return ALL ${candidates.length} candidates.**
+**The server will handle selecting the top ${topN} after scoring.**`;
 };;
 
 const getRecommendation = (score: number): string =>
@@ -950,12 +984,7 @@ export const screenCandidates = async (
         generationConfig: { temperature: 0 },
       });
       
-      const timeoutPromise = new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('Model timeout after 60s')), 60000)
-      );
-      
-      const generatePromise = model.generateContent(prompt);
-      const result = await Promise.race([generatePromise, timeoutPromise]);
+      const result = await model.generateContent(prompt);
       
       const text = result.response.text();
       const output = parseOutput(text, topN, candidatesMap, job);
@@ -964,16 +993,11 @@ export const screenCandidates = async (
     } catch (err: any) {
       const msg = err.message || '';
       const is429 = msg.includes('429') || msg.toLowerCase().includes('quota') || msg.toLowerCase().includes('rate');
-      const isTimeout = msg.toLowerCase().includes('timeout');
-      console.warn(`[AI] ✗ ${modelName} failed${is429 ? ' (rate limit)' : isTimeout ? ' (timeout)' : ''}: ${msg.slice(0, 150)}`);
+      console.warn(`[AI] ✗ ${modelName} failed${is429 ? ' (rate limit)' : ''}: ${msg.slice(0, 150)}`);
       lastError = err;
       
-      // Add progressive delay for rate limits - longer delays
-      if (is429 && i < MODELS.length - 1) {
-        const delay = (i + 1) * 5000;
-        console.log(`[AI] Rate limit hit. Waiting ${delay}ms before trying next model...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-      }
+      // Immediately try next model - no delays, no timeouts
+      console.log(`[AI] Immediately switching to next model...`);
     }
   }
 

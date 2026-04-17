@@ -6,14 +6,15 @@ import { User } from "../models/User";
 
 export const uploadMyCV = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const user = await User.findById((req as any).user.id).select("email name");
+    const applicant_id = (req as any).user.id;
+    const user = await User.findById(applicant_id).select("email name");
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
     if (!req.file) { res.status(400).json({ error: "No file uploaded" }); return; }
     const cv_data = req.file.buffer.toString("base64");
     const cv_filename = req.file.originalname;
     const candidate = await Candidate.findOneAndUpdate(
-      { email: user.email },
-      { $set: { name: user.name, email: user.email, source: "profile", cv_data, cv_filename } },
+      { applicant_id },
+      { $set: { name: user.name, email: user.email, source: "profile", applicant_id, cv_data, cv_filename } },
       { upsert: true, new: true }
     );
     res.json({ cv_filename: candidate.cv_filename });
@@ -22,20 +23,20 @@ export const uploadMyCV = async (req: Request, res: Response, next: NextFunction
 
 export const getMyProfile = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const user = await User.findById((req as any).user.id).select("email name");
-    if (!user) { res.status(404).json({ error: "User not found" }); return; }
-    const candidate = await Candidate.findOne({ email: user.email });
+    const applicant_id = (req as any).user.id;
+    const candidate = await Candidate.findOne({ applicant_id });
     res.json(candidate || null);
   } catch (err) { next(err); }
 };
 
 export const updateMyProfile = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const user = await User.findById((req as any).user.id).select("email name");
+    const applicant_id = (req as any).user.id;
+    const user = await User.findById(applicant_id).select("email name");
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
     const candidate = await Candidate.findOneAndUpdate(
-      { email: user.email },
-      { $set: { name: user.name, email: user.email, source: "profile", ...req.body } },
+      { applicant_id },
+      { $set: { name: user.name, email: user.email, source: "profile", applicant_id, ...req.body } },
       { upsert: true, new: true }
     );
     res.json(candidate);
@@ -81,15 +82,16 @@ export const applyToJob = async (req: Request, res: Response, next: NextFunction
       await Application.findByIdAndUpdate(app._id, { documents });
     }
 
-    // Upsert candidate record by email
-    const existingCandidate = await Candidate.findOne({ email: user.email });
+    // Upsert candidate record by applicant_id
+    const existingCandidate = await Candidate.findOne({ applicant_id });
     await Candidate.findOneAndUpdate(
-      { email: user.email },
+      { applicant_id },
       {
         $set: {
           name: user.name,
           email: user.email,
           source: "profile",
+          applicant_id,
           skills: existingCandidate?.skills?.length ? existingCandidate.skills : body.skills || [],
           education: existingCandidate?.education?.length ? existingCandidate.education : body.education || [],
           experience: existingCandidate?.experience?.length ? existingCandidate.experience : body.experience || [],
@@ -146,21 +148,22 @@ export const getJobApplicantCandidates = async (req: Request, res: Response, nex
       .limit(limit);
     
     const totalApps = await Application.countDocuments({ job_id });
-    const emails = apps.map((a) => (a.applicant_id as any)?.email).filter(Boolean);
-    const applicantCandidates = emails.length > 0 ? await Candidate.find({ email: { $in: emails } }) : [];
+    const applicantIds = apps.map((a) => a.applicant_id).filter(Boolean);
+    const applicantCandidates = applicantIds.length > 0 ? await Candidate.find({ applicant_id: { $in: applicantIds } }) : [];
 
     // Auto-create missing candidate records for applicants
-    const foundEmails = new Set(applicantCandidates.map((c) => c.email));
+    const foundIds = new Set(applicantCandidates.map((c) => c.applicant_id?.toString()));
     for (const app of apps) {
       const u = app.applicant_id as any;
-      if (u?.email && !foundEmails.has(u.email)) {
+      const uid = u?._id?.toString();
+      if (uid && !foundIds.has(uid)) {
         const created = await Candidate.create({
-          name: u.name || "Unknown", email: u.email,
+          name: u.name || "Unknown", email: u.email, applicant_id: uid,
           skills: [], education: [], experience: [], projects: [], certifications: [],
           source: "profile",
         });
         applicantCandidates.push(created);
-        foundEmails.add(u.email);
+        foundIds.add(uid);
       }
     }
 
@@ -250,10 +253,8 @@ export const updateMyApplication = async (req: Request, res: Response, next: Nex
       (app as any).documents = merged;
 
       if (extractedText) {
-        const user = await User.findById((req as any).user.id).select("email");
-        if (user?.email) {
-          await Candidate.findOneAndUpdate({ email: user.email }, { $set: { cv_data: extractedText.slice(0, 10000) } });
-        }
+        const applicant_id = (req as any).user.id;
+        await Candidate.findOneAndUpdate({ applicant_id }, { $set: { cv_data: extractedText.slice(0, 10000) } });
       }
     }
 
@@ -293,45 +294,46 @@ export const getMyJobsCandidates = async (req: Request, res: Response, next: Nex
     const jobMap: Record<string, string> = {};
     jobs.forEach((j) => { jobMap[j._id.toString()] = j.title; });
 
-    // Only applicants who applied via the board (source: profile, matched by email)
+    // Only applicants who applied via the board (source: profile, matched by applicant_id)
     const apps = await Application.find({ job_id: { $in: jobIds } }).populate("applicant_id", "email name");
-    const emailJobsMap: Record<string, { _id: string; title: string; status: string }[]> = {};
+    const applicantJobsMap: Record<string, { _id: string; title: string; status: string }[]> = {};
     for (const app of apps) {
-      const email = (app.applicant_id as any)?.email;
+      const applicantId = (app.applicant_id as any)?._id?.toString();
       const jobId = app.job_id.toString();
-      if (!email) continue;
-      if (!emailJobsMap[email]) emailJobsMap[email] = [];
-      const existing = emailJobsMap[email].find((j) => j._id === jobId);
+      if (!applicantId) continue;
+      if (!applicantJobsMap[applicantId]) applicantJobsMap[applicantId] = [];
+      const existing = applicantJobsMap[applicantId].find((j) => j._id === jobId);
       if (!existing)
-        emailJobsMap[email].push({ _id: jobId, title: jobMap[jobId] || "Unknown", status: app.status });
+        applicantJobsMap[applicantId].push({ _id: jobId, title: jobMap[jobId] || "Unknown", status: app.status });
       else
         existing.status = app.status; // keep latest status
     }
 
-    const emails = Object.keys(emailJobsMap);
-    if (emails.length === 0) { res.json([]); return; }
+    const applicantIds = Object.keys(applicantJobsMap);
+    if (applicantIds.length === 0) { res.json([]); return; }
 
     // Only profile-source candidates (board applicants)
-    const candidates = await Candidate.find({ email: { $in: emails }, source: "profile" });
+    const candidates = await Candidate.find({ applicant_id: { $in: applicantIds }, source: "profile" });
 
     // Auto-create missing
-    const foundEmails = new Set(candidates.map((c) => c.email));
+    const foundIds = new Set(candidates.map((c) => c.applicant_id?.toString()));
     for (const app of apps) {
       const u = app.applicant_id as any;
-      if (u?.email && !foundEmails.has(u.email)) {
+      const uid = u?._id?.toString();
+      if (uid && !foundIds.has(uid)) {
         const created = await Candidate.create({
-          name: u.name || "Unknown", email: u.email,
+          name: u.name || "Unknown", email: u.email, applicant_id: uid,
           skills: [], education: [], experience: [], projects: [], certifications: [],
           source: "profile",
         });
         candidates.push(created);
-        foundEmails.add(u.email);
+        foundIds.add(uid);
       }
     }
 
     const result = candidates.map((c) => ({
       ...c.toObject(),
-      jobs_applied: c.email ? (emailJobsMap[c.email] || []) : [],
+      jobs_applied: c.applicant_id ? (applicantJobsMap[c.applicant_id.toString()] || []) : [],
     }));
 
     res.json(result);
@@ -371,9 +373,8 @@ export const getApplicantUser = async (req: Request, res: Response, next: NextFu
  */
 export const getApplicantProfile = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const user = await User.findById(req.params.applicant_id).select("email name");
-    if (!user) { res.status(404).json({ error: "User not found" }); return; }
-    const candidate = await Candidate.findOne({ email: user.email });
+    const applicant_id = req.params.applicant_id;
+    const candidate = await Candidate.findOne({ applicant_id });
     res.json(candidate || null);
   } catch (err) { next(err); }
 };
