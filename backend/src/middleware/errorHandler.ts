@@ -32,29 +32,63 @@ export const errorHandler = (err: any, _req: Request, res: Response, _next: Next
     return;
   }
 
+  // Network/Connection errors
+  if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND' || err.code === 'ETIMEDOUT') {
+    res.status(503).json({ 
+      error: "Connection error. Please check your internet connection and try again.",
+      userMessage: "Unable to connect to the service. Please check your connection and try again."
+    });
+    return;
+  }
+
+  // Timeout errors
+  if (err.message?.includes('timeout') || err.code === 'ETIMEDOUT') {
+    res.status(504).json({ 
+      error: "Request timed out. Please try again.",
+      userMessage: "The request took too long. Please check your connection and try again."
+    });
+    return;
+  }
+
   // Gemini / external API quota
-  if (err.message?.includes("429") || err.message?.includes("quota")) {
-    res.status(429).json({ error: "AI service is busy. Please wait a moment and try again." });
+  if (err.message?.includes("429") || err.message?.includes("quota") || err.message?.includes('rate limit')) {
+    res.status(429).json({ 
+      error: "AI service rate limit reached. Please wait a moment and try again.",
+      userMessage: "The AI service is experiencing high demand. Please try again in a few minutes."
+    });
     return;
   }
 
   // Gemini model not found
   if (err.message?.includes("404") && err.message?.includes("model")) {
-    res.status(500).json({ error: "AI model unavailable. Please contact support." });
+    res.status(500).json({ 
+      error: "AI model unavailable. Please contact support.",
+      userMessage: "The AI service is temporarily unavailable. Please try again later."
+    });
     return;
   }
 
   // JSON parse error from Gemini response
   if (err.message?.includes("JSON") || err.name === "SyntaxError") {
-    res.status(500).json({ error: "AI returned an unexpected response. Please try again." });
+    res.status(500).json({ 
+      error: "AI returned an unexpected response. Please try again.",
+      userMessage: "Something went wrong with the AI service. Please try again."
+    });
     return;
   }
 
   // All Gemini models unavailable
-  if (err.message?.includes("All Gemini models unavailable")) {
-    res.status(503).json({ error: "AI service is temporarily unavailable. Please try again in a few minutes." });
+  if (err.message?.includes("All AI models failed") || err.message?.includes("All Gemini models unavailable")) {
+    res.status(503).json({ 
+      error: "AI service is temporarily unavailable. Please try again in a few minutes.",
+      userMessage: "The AI screening service is temporarily unavailable. Please wait a moment and try again."
+    });
     return;
   }
 
-  res.status(500).json({ error: err.message || "Something went wrong. Please try again." });
+  // Generic fallback
+  res.status(500).json({ 
+    error: err.message || "Something went wrong. Please try again.",
+    userMessage: "An unexpected error occurred. Please check your connection and try again."
+  });
 };

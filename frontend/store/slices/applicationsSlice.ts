@@ -50,8 +50,14 @@ const applicationsSlice = createSlice({
           s.lastFetched[a.payload.jobId] = Date.now();
         }
       })
+      .addCase(loadJobApplications.rejected, (s, a) => { 
+        s.loading = false;
+      })
       .addCase(loadMyApplications.pending, (s) => { s.loading = true; })
       .addCase(loadMyApplications.fulfilled, (s, a) => { s.loading = false; s.items = a.payload; })
+      .addCase(loadMyApplications.rejected, (s) => { 
+        s.loading = false;
+      })
       .addCase(changeApplicationStatus.fulfilled, (s, a) => {
         const i = s.items.findIndex((x) => x._id === a.payload._id);
         if (i !== -1) s.items[i] = a.payload;

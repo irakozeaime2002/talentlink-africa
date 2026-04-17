@@ -68,10 +68,30 @@ const authSlice = createSlice({
     builder
       .addCase(registerUser.pending, (s) => { s.loading = true; s.error = null; })
       .addCase(registerUser.fulfilled, (s, a) => { s.loading = false; s.user = a.payload.user; s.token = a.payload.token; })
-      .addCase(registerUser.rejected, (s, a) => { s.loading = false; s.error = a.error.message || "Failed"; })
+      .addCase(registerUser.rejected, (s, a) => { 
+        s.loading = false; 
+        const errorMsg = a.error.message || "Registration failed";
+        if (errorMsg.includes('network') || errorMsg.includes('ECONNREFUSED') || errorMsg.includes('ERR_CONNECTION')) {
+          s.error = "Connection error. Please check your internet connection and try again.";
+        } else if (errorMsg.includes('timeout') || errorMsg.includes('ETIMEDOUT')) {
+          s.error = "Request timed out. Please check your connection and try again.";
+        } else {
+          s.error = errorMsg;
+        }
+      })
       .addCase(loginUser.pending, (s) => { s.loading = true; s.error = null; })
       .addCase(loginUser.fulfilled, (s, a) => { s.loading = false; s.user = a.payload.user; s.token = a.payload.token; })
-      .addCase(loginUser.rejected, (s, a) => { s.loading = false; s.error = a.error.message || "Failed"; })
+      .addCase(loginUser.rejected, (s, a) => { 
+        s.loading = false; 
+        const errorMsg = a.error.message || "Login failed";
+        if (errorMsg.includes('network') || errorMsg.includes('ECONNREFUSED') || errorMsg.includes('ERR_CONNECTION')) {
+          s.error = "Connection error. Please check your internet connection and try again.";
+        } else if (errorMsg.includes('timeout') || errorMsg.includes('ETIMEDOUT')) {
+          s.error = "Request timed out. Please check your connection and try again.";
+        } else {
+          s.error = errorMsg;
+        }
+      })
       .addCase(loadMe.fulfilled, (s, a) => { s.user = a.payload; })
       .addCase(updateProfile.fulfilled, (s, a) => { s.user = a.payload; })
       .addCase(upgradePlan.fulfilled, (s, a) => { s.user = a.payload.user; s.token = a.payload.token; });

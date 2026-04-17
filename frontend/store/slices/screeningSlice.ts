@@ -72,7 +72,24 @@ const screeningSlice = createSlice({
         const jobId = typeof a.payload.job_id === 'string' ? a.payload.job_id : a.payload.job_id._id;
         delete s.lastFetched[jobId];
       })
-      .addCase(triggerScreening.rejected, (s, a) => { s.loading = false; s.error = a.error.message || "Screening failed"; })
+      .addCase(triggerScreening.rejected, (s, a) => { 
+        s.loading = false; 
+        // Extract user-friendly error message
+        const errorPayload = a.error.message || "Screening failed";
+        
+        // Check for specific error types and provide helpful messages
+        if (errorPayload.includes('rate limit') || errorPayload.includes('429')) {
+          s.error = "AI service is experiencing high demand. Please wait a moment and try again.";
+        } else if (errorPayload.includes('connection') || errorPayload.includes('network') || errorPayload.includes('ECONNREFUSED')) {
+          s.error = "Connection issue detected. Please check your internet connection and try again.";
+        } else if (errorPayload.includes('timeout') || errorPayload.includes('ETIMEDOUT')) {
+          s.error = "Request timed out. Please check your connection and try again.";
+        } else if (errorPayload.includes('unavailable') || errorPayload.includes('All AI models failed')) {
+          s.error = "AI screening service is temporarily unavailable. Please wait a moment and try again.";
+        } else {
+          s.error = errorPayload;
+        }
+      })
       .addCase(loadScreeningResults.fulfilled, (s, a) => { 
         s.results = a.payload.data;
         // Only update lastFetched if data is fresh (not from cache)

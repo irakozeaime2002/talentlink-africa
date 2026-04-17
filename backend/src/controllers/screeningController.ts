@@ -199,7 +199,43 @@ export const runScreening = async (req: Request, res: Response, next: NextFuncti
   } catch (err) {
     console.error("[Screening error]", (err as Error).message);
     console.error("[Screening error stack]", (err as Error).stack);
-    next(err);
+    
+    // Provide user-friendly error messages
+    const errorMessage = (err as Error).message || '';
+    
+    if (errorMessage.includes('Rate limit exceeded') || errorMessage.includes('429')) {
+      res.status(503).json({
+        error: "Service temporarily unavailable",
+        message: "AI service rate limit reached. Please wait a moment and try again.",
+        userMessage: "The AI screening service is experiencing high demand. Please try again in a few minutes."
+      });
+      return;
+    }
+    
+    if (errorMessage.includes('timeout') || errorMessage.includes('ECONNREFUSED') || errorMessage.includes('ETIMEDOUT')) {
+      res.status(503).json({
+        error: "Connection error",
+        message: "Unable to connect to AI service. Please check your connection and try again.",
+        userMessage: "Connection issue detected. Please check your internet connection and try again."
+      });
+      return;
+    }
+    
+    if (errorMessage.includes('All AI models failed')) {
+      res.status(503).json({
+        error: "AI service unavailable",
+        message: "All AI models are currently unavailable. Please try again later.",
+        userMessage: "The AI screening service is temporarily unavailable. Please wait a moment and try again."
+      });
+      return;
+    }
+    
+    // Generic error fallback
+    res.status(500).json({
+      error: "Screening failed",
+      message: errorMessage || "An unexpected error occurred during screening.",
+      userMessage: "Something went wrong. Please check your connection and try again."
+    });
   }
 };
 

@@ -50,7 +50,17 @@ const jobsSlice = createSlice({
         s.items = a.payload; 
         s.lastFetched = Date.now();
       })
-      .addCase(loadJobs.rejected, (s, a) => { s.loading = false; s.error = a.error.message || "Failed to load jobs"; })
+      .addCase(loadJobs.rejected, (s, a) => { 
+        s.loading = false; 
+        const errorMsg = a.error.message || "Failed to load jobs";
+        if (errorMsg.includes('network') || errorMsg.includes('ECONNREFUSED') || errorMsg.includes('ERR_CONNECTION')) {
+          s.error = "Connection error. Please check your internet connection and try again.";
+        } else if (errorMsg.includes('timeout') || errorMsg.includes('ETIMEDOUT')) {
+          s.error = "Request timed out. Please check your connection and try again.";
+        } else {
+          s.error = errorMsg;
+        }
+      })
       .addCase(addJob.fulfilled, (s, a) => { s.items.unshift(a.payload); })
       .addCase(editJob.fulfilled, (s, a) => {
         const i = s.items.findIndex((j) => j._id === a.payload._id);

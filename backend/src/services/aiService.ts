@@ -456,39 +456,17 @@ const calculateSkillsScore = (candidate: CandidateInput, job: JobInput): number 
     
     // Check variations (e.g., "english" matches "anglais", "communication" matches "good communication")
     const variations = getSkillVariations(req);
-    const found = allSkills.some(cs => variations.some(v => cs.includes(v) || v.includes(cs)));
-    
-    // Debug logging for language skills
-    if (!found && (req.includes('english') || req.includes('french') || req.includes('kinyarwanda') || req.includes('language'))) {
-      console.log(`[Skills] Language requirement "${req}" not found.`);
-      console.log(`[Skills] Candidate languages[] field:`, languages.map(l => `${l.name} (${l.proficiency || 'N/A'})`));
-      console.log(`[Skills] All skills in skillsSet:`, Array.from(allSkills).filter(s => 
-        s.includes('english') || s.includes('french') || s.includes('kinyarwanda') || 
-        s.includes('language') || s.includes('anglais')
-      ));
-    }
-    
-    return found;
+    return allSkills.some(cs => variations.some(v => cs.includes(v) || v.includes(cs)));
   });
   
   // Calculate base score from required skills match
   const baseScore = (matched.length / requiredSkills.length) * 100;
-  
-  // Debug logging for skill matching
-  console.log(`[Skills] Candidate: ${candidate.name}`);
-  console.log(`[Skills] Required: ${requiredSkills.length}, Matched: ${matched.length}`);
-  console.log(`[Skills] Matched skills:`, matched);
-  const missing = requiredSkills.filter(req => !matched.includes(req));
-  if (missing.length > 0) {
-    console.log(`[Skills] Missing skills:`, missing);
-  }
   
   // CRITICAL: Bonuses should only apply if ALL required skills are met
   // If any required skill is missing, cap the score at the base percentage
   if (matched.length < requiredSkills.length) {
     // Missing required skills - no bonuses allowed
     // Cap at 95% to ensure perfect match (100%) is only for candidates with ALL requirements
-    console.log(`[Skills] Score capped at ${Math.min(95, baseScore)}% due to missing required skills`);
     return Math.min(95, Math.max(0, baseScore));
   }
   
@@ -512,8 +490,6 @@ const calculateSkillsScore = (candidate: CandidateInput, job: JobInput): number 
   ).length;
   const expertBonus = Math.min(10, advancedCount * 2);
   score += expertBonus;
-  
-  console.log(`[Skills] Final score: ${Math.min(100, score)}% (base: ${baseScore}%, preferred: +${preferredBonus}%, expert: +${expertBonus}%)`);
   
   return Math.min(100, Math.max(0, score));
 };

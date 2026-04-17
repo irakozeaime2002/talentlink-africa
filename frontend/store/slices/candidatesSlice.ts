@@ -53,7 +53,17 @@ const candidatesSlice = createSlice({
         s.items = a.payload; 
         s.lastFetched = Date.now();
       })
-      .addCase(loadCandidates.rejected, (s, a) => { s.loading = false; s.error = a.error.message || "Failed to load candidates"; })
+      .addCase(loadCandidates.rejected, (s, a) => { 
+        s.loading = false; 
+        const errorMsg = a.error.message || "Failed to load candidates";
+        if (errorMsg.includes('network') || errorMsg.includes('ECONNREFUSED') || errorMsg.includes('ERR_CONNECTION')) {
+          s.error = "Connection error. Please check your internet connection and try again.";
+        } else if (errorMsg.includes('timeout') || errorMsg.includes('ETIMEDOUT')) {
+          s.error = "Request timed out. Please check your connection and try again.";
+        } else {
+          s.error = errorMsg;
+        }
+      })
       .addCase(addCandidate.fulfilled, (s, a) => { s.items.unshift(a.payload); })
       .addCase(removeCandidate.fulfilled, (s, a) => { s.items = s.items.filter((c) => c._id !== a.payload); })
       .addCase(bulkRemoveCandidates.fulfilled, (s, a) => { s.items = s.items.filter((c) => !a.payload.includes(c._id)); })

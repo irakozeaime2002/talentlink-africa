@@ -16,7 +16,7 @@ export default function ClientWrapper({ children }: { children: React.ReactNode 
         <PersistGate loading={<>{children}</>} persistor={persistor}>
           <AuthLoader />
           <Navbar />
-          <main className="relative z-10 max-w-7xl mx-auto px-4 py-8">{children}</main>
+          <main className="relative z-10 max-w-7xl mx-auto px-4 pt-12 pb-8">{children}</main>
           <Footer />
           <AIChatWidget />
           <Toaster
