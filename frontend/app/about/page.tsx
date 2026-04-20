@@ -3,7 +3,8 @@ import Link from "next/link";
 import { Users, Target, Globe, Award, ArrowRight, CheckCircle } from "lucide-react";
 
 const team = [
-  { name: "IRAKOZE Aime", role: "Full Stack & AI Engineer", avatar: "I" },
+  { name: "IRAKOZE Aime", role: "Backend & AI Software Engineer", avatar: "IA", email: "irakozeaime2002@gmail.com" },
+  { name: "NSHIMYUMUKIZA Joseph Desire", role: "Frontend Engineer", avatar: "JD", email: "nshimyumukizalosephdesire@gmail.com" },
 ];
 
 const values = [
@@ -105,14 +106,15 @@ export default function AboutPage() {
       {/* Team */}
       <div>
         <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white text-center mb-10">Meet the Team</h2>
-        <div className="flex justify-center">
-          {team.map(({ name, role, avatar }) => (
-            <div key={name} className="glass-card p-8 text-center w-64">
-              <div className="w-20 h-20 btn-glow rounded-2xl flex items-center justify-center text-3xl font-extrabold text-white mx-auto mb-4">
+        <div className="flex justify-center gap-6 flex-wrap">
+          {team.map(({ name, role, avatar, email }) => (
+            <div key={name} className="glass-card p-8 text-center w-72">
+              <div className="w-20 h-20 btn-glow rounded-2xl flex items-center justify-center text-2xl font-extrabold text-white mx-auto mb-4">
                 {avatar}
               </div>
-              <p className="font-bold text-gray-900 dark:text-white">{name}</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{role}</p>
+              <p className="font-bold text-gray-900 dark:text-white text-lg">{name}</p>
+              <p className="text-sm font-semibold mt-1" style={{ color: "var(--accent)" }}>{role}</p>
+              <p className="text-xs text-gray-400 mt-2">{email}</p>
             </div>
           ))}
         </div>
