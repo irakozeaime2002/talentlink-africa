@@ -744,20 +744,34 @@ ${questions.length > 0 ? `✓ **Application Answers Check:**
    - Flag vague answers (<50 chars) or missing answers
    - Example: Unanswered question → gap: "Did not answer: 'Why this role?'"` : ''}
 
-### PRIORITY 2: STRENGTHS (Only if requirements met)
-Reference SPECIFIC evidence from their profile with natural source attribution:
-- Format: "[Evidence] (from [natural source description])"
-- Examples:
-  • "5 years Node.js experience at Microsoft as Senior Engineer (from work history)"
-  • "Fluent in English and Kinyarwanda (from languages)"
-  • "Customer service skills demonstrated through serving 50+ customers daily at Hope Restaurant (from experience)"
-  • "Team collaboration experience working with 8-person development team (from project description)"
-  • "Proven time management with consistent punctuality record (from cover letter)"
-  • "AWS Certified Developer certification (from certifications)"
-- Use natural source names: "from languages", "from work history", "from education", "from skills", "from certifications", "from cover letter", "from resume", "from bio"
+### PRIORITY 2: STRENGTHS (Detailed and Contextual)
+**CRITICAL: Each strength MUST be a complete sentence explaining WHY it matters and HOW it relates to the job**
 
-### PRIORITY 3: GAPS (MANDATORY - Must provide for ALL candidates)
-**CRITICAL: You MUST provide gaps[] array for EVERY candidate, even high scorers**
+Format: "[What they have] + [Why it's relevant] + [Specific evidence/context] (from [source])"
+
+**Good Examples:**
+✓ "Has 5 years of Node.js experience at Microsoft as Senior Engineer, directly matching the required backend expertise for this role (from work history)"
+✓ "Fluent in both English and Kinyarwanda, meeting the bilingual communication requirement for customer-facing interactions (from languages)"
+✓ "Demonstrated strong customer service skills by serving 50+ customers daily at Hope Restaurant, showing ability to handle high-volume service environments (from experience)"
+✓ "Proven team collaboration through 2 years working with an 8-person development team on production systems (from project description)"
+✓ "Holds AWS Certified Developer certification, validating technical expertise in cloud infrastructure required for this position (from certifications)"
+✓ "Application answers show deep understanding of customer welcome protocols and stress management techniques, indicating readiness for hospitality role (from application_answers)"
+
+**Bad Examples (too brief - DO NOT use these formats):**
+✗ "Food safety (from skills)"
+✗ "Teamwork (from skills)"
+✗ "Basic English (from languages)"
+✗ "Customer Service Cert (from certifications)"
+
+**Rules:**
+- Minimum 10-15 words per strength
+- Explain the relevance to the job requirements
+- Include specific numbers, company names, or project details when available
+- Connect the strength to a job requirement or responsibility
+- Use natural source names: "from languages", "from work history", "from education", "from skills", "from certifications", "from cover letter", "from resume", "from application answers"
+
+### PRIORITY 3: GAPS / RISKS (MANDATORY - Detailed Explanations Required)
+**CRITICAL: You MUST provide gaps[] array for EVERY candidate with detailed, actionable feedback**
 
 **Scoring Guidelines for Gaps:**
 - **Score 0-59**: List ALL missing requirements + ALL weak areas + quality issues
@@ -767,33 +781,54 @@ Reference SPECIFIC evidence from their profile with natural source attribution:
 
 **Never return empty gaps[] array - always provide constructive feedback**
 
+Format: "[What's missing/weak] + [Why it matters] + [Impact on job performance]"
+
+**Good Examples:**
+✓ "No evidence of customer service skills found in profile despite being a required skill - this is critical for a customer-facing role where daily client interactions are expected"
+✓ "Application letter not provided as required document - this makes it difficult to assess written communication skills and motivation for the role"
+✓ "Only 2 years of experience for a Senior-level position that typically requires 5+ years - may struggle with complex architectural decisions and team leadership responsibilities"
+✓ "Docker listed as Beginner level while job requires Advanced proficiency - containerization is essential for the deployment pipeline and production environment management"
+✓ "No portfolio projects demonstrating React in production environments - practical experience is needed to handle the complex frontend requirements of this role"
+✓ "Degree in Business Administration rather than Computer Science - while not disqualifying, may need additional technical training to match the engineering depth required"
+✓ "Application answer to 'Describe your leadership experience' is only 2 sentences and lacks specific examples - more detail needed to assess management capabilities"
+
+**Bad Examples (too brief - DO NOT use these formats):**
+✗ "Missing required skill: Customer service skills"
+✗ "Missing required document: Application letter"
+✗ "Only 2 years experience"
+✗ "No Docker experience"
+
+**Rules:**
+- Minimum 15-20 words per gap
+- Explain WHY the gap matters for THIS specific job
+- Describe the potential impact or risk
+- Be constructive and professional (not harsh)
+- For missing skills: explain where/how that skill would be used in the role
+- For missing documents: explain what information is lost without it
+- For experience gaps: explain what challenges they might face
+
 ✓ **Missing Requirements (highest priority):**
-   - List EVERY missing required skill: "Missing required skill: [skill name]"
-   - List EVERY missing required document: "Missing required document: [document name]"
-   - List unanswered questions: "Did not answer: [question]"
+   - Format: "No evidence of [skill] found despite being required - [why it's critical for the role]"
+   - Format: "[Document] not provided as required - [what assessment is impacted]"
+   - Format: "Did not answer '[question]' - [what insight is missing]"
 
 ✓ **Weak Areas (for scores below 80):**
-   - Limited experience: "Only [X] years experience for [level] role (typically needs [Y]+ years)"
-   - Skill proficiency: "[Skill] listed as Beginner/Intermediate (Advanced/Expert preferred)"
-   - Lack of projects: "No portfolio projects demonstrating [skill] in practice"
-   - Education mismatch: "Degree in [field] not directly related to [job field]"
-   - Missing preferred skills: "Would benefit from [preferred skill] experience"
+   - Format: "Only [X] years experience for [level] role (typically needs [Y]+) - [potential challenges they may face]"
+   - Format: "[Skill] listed as [level] while [higher level] preferred - [why higher proficiency matters]"
+   - Format: "No portfolio projects demonstrating [skill] - [why practical evidence is important]"
 
 ✓ **Quality Issues (for scores below 70):**
-   - Vague answers: "Application answer to '[question]' lacks specific examples"
-   - Incomplete profile: "No certifications listed (industry certifications would strengthen profile)"
-   - Generic experience: "Work descriptions lack specific achievements or metrics"
+   - Format: "Application answer to '[question]' lacks specific examples - [what detail is needed]"
+   - Format: "No certifications listed - [which certifications would strengthen candidacy]"
 
 ✓ **Improvement Suggestions (for ALL candidates):**
-   - "Could strengthen profile with [specific certification]"
-   - "Would benefit from more detailed project descriptions"
-   - "Consider adding quantifiable achievements to work history"
+   - Format: "Could strengthen profile with [specific item] - [how it would improve their candidacy]"
 
 **Examples:**
-- Score 45/100: ["Missing required skill: Docker", "Missing required skill: AWS", "Only 1 year experience for Senior role (typically needs 5+ years)", "No portfolio projects demonstrating backend development", "No certifications listed"]
-- Score 66/100: ["Missing required skill: Docker", "Only 2 years experience for Senior role (typically needs 5+ years)", "No portfolio projects demonstrating AWS in practice", "Would benefit from Kubernetes experience"]
-- Score 85/100: ["Python listed as Intermediate (Advanced preferred for this role)", "Would benefit from more detailed project descriptions", "Consider adding industry certifications"]
-- Score 95/100: ["All core requirements met", "Could strengthen profile with additional certifications to stand out further"]
+- Score 45/100: ["No evidence of Docker experience found in profile despite being a required skill - containerization is essential for the microservices architecture this role will manage", "AWS experience not demonstrated in any projects or work history - cloud infrastructure knowledge is critical for deploying and scaling the platform", "Only 1 year of total experience for a Senior role that typically requires 5+ years - may lack the architectural decision-making skills needed for system design", "No portfolio projects showing backend development work - practical evidence is needed to validate problem-solving abilities"]
+- Score 66/100: ["Docker not mentioned in skills or experience despite being required - this tool is used daily for local development and production deployments", "Only 2 years experience for Senior-level position (typically needs 5+) - may need mentorship for complex technical leadership decisions", "No portfolio projects demonstrating AWS in production environments - hands-on cloud experience is important for infrastructure management", "Would benefit from Kubernetes certification to strengthen container orchestration knowledge"]
+- Score 85/100: ["Python proficiency listed as Intermediate while Advanced is preferred for this role - higher expertise would help with optimizing performance-critical code sections", "Project descriptions could include more quantifiable metrics (e.g., performance improvements, user impact) to better demonstrate impact", "Consider obtaining relevant industry certifications like AWS Solutions Architect to validate cloud expertise"]
+- Score 95/100: ["All core requirements strongly met - profile could be further enhanced with additional certifications in emerging technologies to stay ahead of industry trends", "Consider adding more detailed metrics to project descriptions to quantify business impact and technical achievements"]
 
 ### PRIORITY 4: REASON (2-3 sentences with context)
 - Sentence 1: How many required skills matched vs total required
@@ -834,23 +869,27 @@ Reference SPECIFIC evidence from their profile with natural source attribution:
       "candidate_id": "<id>",
       "name": "<name>",
       "strengths": [
-        "Specific evidence with natural source (from languages/skills/experience/etc)",
-        "Another strength with source (from certifications)"
+        "Complete sentence explaining what they have, why it's relevant, and specific evidence (from source)",
+        "Another detailed strength with context and job relevance (from another source)"
       ],
       "gaps": [
-        "MANDATORY: Must provide at least 1 gap/improvement for EVERY candidate",
-        "Missing required skill: X (if applicable)",
-        "Improvement suggestion or weak area"
+        "Detailed explanation of what's missing, why it matters, and the impact on job performance",
+        "Another gap with full context about the risk or improvement needed"
       ],
-      "reason": "Matched X of ${requiredSkills.length} required skills. [Best qualification]. [Main gap or additional strength]."
+      "reason": "Matched X of ${requiredSkills.length} required skills. [Best qualification with specific details]. [Main gap with explanation or additional strength]."
     }
   ]
 }
 
-**CRITICAL: You MUST analyze and return ALL ${candidates.length} candidates in the ranking array.**
-**Do NOT limit to top 5 or top 10 - return ALL ${candidates.length} candidates.**
-**EVERY candidate MUST have a non-empty gaps[] array with at least 1 item.**
-**The server will handle selecting the top ${topN} after scoring.**`;
+**CRITICAL FORMATTING RULES:**
+- Each strength MUST be 10-15+ words with full context and relevance explanation
+- Each gap MUST be 15-20+ words explaining why it matters and the impact
+- NEVER use brief formats like "Teamwork (from skills)" or "Missing required skill: X"
+- ALWAYS explain the significance and connection to job requirements
+- You MUST analyze and return ALL ${candidates.length} candidates in the ranking array
+- Do NOT limit to top 5 or top 10 - return ALL ${candidates.length} candidates
+- EVERY candidate MUST have non-empty strengths[] and gaps[] arrays
+- The server will handle selecting the top ${topN} after scoring`;
 };;
 
 const getRecommendation = (score: number): string =>
@@ -927,11 +966,11 @@ const parseOutput = (text: string, topN: number, candidatesMap: Map<string, Cand
       strengths: c.strengths || [],
       gaps: (c.gaps && c.gaps.length > 0) ? c.gaps : [
         // Fallback: Generate meaningful gap based on score
-        rounded >= 90 ? "Profile is strong; consider adding more certifications to stand out further" :
-        rounded >= 80 ? "Could strengthen profile with additional industry certifications" :
-        rounded >= 70 ? "Would benefit from more detailed project descriptions and quantifiable achievements" :
-        rounded >= 60 ? "Limited evidence of some required skills; consider adding more specific examples" :
-        "Multiple required skills missing; significant experience gap for this role level"
+        rounded >= 90 ? "Profile meets all core requirements strongly - could be further enhanced with additional industry certifications or advanced training to stand out even more in competitive selection processes" :
+        rounded >= 80 ? "Strong overall profile with minor areas for improvement - consider obtaining additional industry certifications and adding more quantifiable metrics to project descriptions to demonstrate measurable impact" :
+        rounded >= 70 ? "Good foundation but would benefit from more detailed project descriptions with specific achievements, quantifiable results, and additional evidence of hands-on experience with required technologies" :
+        rounded >= 60 ? "Limited evidence of some required skills in the profile - would benefit from adding more specific examples, detailed work descriptions, and practical demonstrations of technical abilities through portfolio projects" :
+        "Multiple required skills not demonstrated in profile and experience level appears below job requirements - significant gaps in technical expertise and practical experience that are critical for this role's responsibilities"
       ],
       reason: c.reason || '',
       recommendation: getRecommendation(rounded),
