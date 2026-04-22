@@ -155,6 +155,15 @@ export const adminDeleteAd = (id: string) => api.delete(`/ads/${id}`).then((r) =
 export const sendChatMessage = (message: string, history: { role: "user" | "model"; parts: { text: string }[] }[]) =>
   api.post<{ reply: string }>("/chat", { message, history }).then((r) => r.data);
 
+// Contact
+export const createContactMessage = (data: { name: string; email: string; subject: string; message: string }) =>
+  api.post("/contact", data).then((r) => r.data);
+export const adminGetContactMessages = () => api.get("/contact").then((r) => r.data);
+export const adminGetContactMessage = (id: string) => api.get(`/contact/${id}`).then((r) => r.data);
+export const adminUpdateContactMessageStatus = (id: string, status: string) =>
+  api.patch(`/contact/${id}/status`, { status }).then((r) => r.data);
+export const adminDeleteContactMessage = (id: string) => api.delete(`/contact/${id}`).then((r) => r.data);
+
 // Admin
 export const adminGetStats = () => api.get("/admin/stats").then((r) => r.data);
 export const adminGetUsers = (params?: Record<string, any>) => api.get("/admin/users", { params }).then((r) => r.data);

@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Mail, Phone, MapPin, Send, MessageCircle, Clock } from "lucide-react";
 import toast from "react-hot-toast";
+import * as api from "../../lib/api";
 
 const contacts = [
   { icon: Mail, label: "Email", value: "hello@talentlinkafrica.com", href: "mailto:hello@talentlinkafrica.com" },
@@ -23,11 +24,22 @@ export default function ContactPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!form.subject) {
+      toast.error("Please select a subject");
+      return;
+    }
+    
     setSending(true);
-    await new Promise((r) => setTimeout(r, 1200));
-    toast.success("Message sent! We'll get back to you within 24 hours.");
-    setForm({ name: "", email: "", subject: "", message: "" });
-    setSending(false);
+    try {
+      await api.createContactMessage(form);
+      toast.success("Message sent! We'll get back to you within 24 hours.");
+      setForm({ name: "", email: "", subject: "", message: "" });
+    } catch (err: any) {
+      toast.error(err.message || "Failed to send message");
+    } finally {
+      setSending(false);
+    }
   };
 
   return (

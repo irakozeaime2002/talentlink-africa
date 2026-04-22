@@ -14,6 +14,7 @@ import chatRoutes from "./routes/chatRoutes";
 import planRoutes from "./routes/planRoutes";
 import paymentRoutes from "./routes/paymentRoutes";
 import advertisementRoutes from "./routes/advertisementRoutes";
+import contactRoutes from "./routes/contactRoutes";
 import { errorHandler } from "./middleware/errorHandler";
 
 const app = express();
@@ -42,6 +43,7 @@ app.use("/api/chat", chatRoutes);
 app.use("/api/plan", planRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/ads", advertisementRoutes);
+app.use("/api/contact", contactRoutes);
 
 // Public plan config endpoints (no auth required)
 app.get("/api/public/plan-configs", async (_req, res, next) => {
