@@ -756,37 +756,44 @@ Reference SPECIFIC evidence from their profile with natural source attribution:
   • "AWS Certified Developer certification (from certifications)"
 - Use natural source names: "from languages", "from work history", "from education", "from skills", "from certifications", "from cover letter", "from resume", "from bio"
 
-### PRIORITY 3: GAPS (Be comprehensive and helpful)
-**CRITICAL: Always provide meaningful gaps analysis, even if all requirements are met**
+### PRIORITY 3: GAPS (MANDATORY - Must provide for ALL candidates)
+**CRITICAL: You MUST provide gaps[] array for EVERY candidate, even high scorers**
 
-For candidates scoring below 90%, identify improvement areas:
+**Scoring Guidelines for Gaps:**
+- **Score 0-59**: List ALL missing requirements + ALL weak areas + quality issues
+- **Score 60-79**: List missing requirements (if any) + key weak areas + improvement suggestions
+- **Score 80-89**: List missing preferred skills + improvement suggestions
+- **Score 90-100**: Provide at least 1-2 minor improvement suggestions
 
-✓ **Missing Requirements (if any):**
+**Never return empty gaps[] array - always provide constructive feedback**
+
+✓ **Missing Requirements (highest priority):**
    - List EVERY missing required skill: "Missing required skill: [skill name]"
    - List EVERY missing required document: "Missing required document: [document name]"
    - List unanswered questions: "Did not answer: [question]"
 
-✓ **Weak Areas (even if requirements met):**
+✓ **Weak Areas (for scores below 80):**
    - Limited experience: "Only [X] years experience for [level] role (typically needs [Y]+ years)"
    - Skill proficiency: "[Skill] listed as Beginner/Intermediate (Advanced/Expert preferred)"
    - Lack of projects: "No portfolio projects demonstrating [skill] in practice"
    - Education mismatch: "Degree in [field] not directly related to [job field]"
    - Missing preferred skills: "Would benefit from [preferred skill] experience"
 
-✓ **Quality Issues:**
+✓ **Quality Issues (for scores below 70):**
    - Vague answers: "Application answer to '[question]' lacks specific examples"
    - Incomplete profile: "No certifications listed (industry certifications would strengthen profile)"
    - Generic experience: "Work descriptions lack specific achievements or metrics"
 
-✓ **Improvement Suggestions:**
+✓ **Improvement Suggestions (for ALL candidates):**
    - "Could strengthen profile with [specific certification]"
    - "Would benefit from more detailed project descriptions"
    - "Consider adding quantifiable achievements to work history"
 
 **Examples:**
-- Score 70/100: ["Missing required skill: Docker", "Only 2 years experience for Senior role (typically needs 5+ years)", "No portfolio projects demonstrating AWS in practice", "Would benefit from Kubernetes experience"]
+- Score 45/100: ["Missing required skill: Docker", "Missing required skill: AWS", "Only 1 year experience for Senior role (typically needs 5+ years)", "No portfolio projects demonstrating backend development", "No certifications listed"]
+- Score 66/100: ["Missing required skill: Docker", "Only 2 years experience for Senior role (typically needs 5+ years)", "No portfolio projects demonstrating AWS in practice", "Would benefit from Kubernetes experience"]
 - Score 85/100: ["Python listed as Intermediate (Advanced preferred for this role)", "Would benefit from more detailed project descriptions", "Consider adding industry certifications"]
-- Score 95/100: ["All requirements met", "Could strengthen profile with additional certifications"]
+- Score 95/100: ["All core requirements met", "Could strengthen profile with additional certifications to stand out further"]
 
 ### PRIORITY 4: REASON (2-3 sentences with context)
 - Sentence 1: How many required skills matched vs total required
@@ -831,8 +838,9 @@ For candidates scoring below 90%, identify improvement areas:
         "Another strength with source (from certifications)"
       ],
       "gaps": [
-        "Missing required skill: X",
-        "Missing document: Y"
+        "MANDATORY: Must provide at least 1 gap/improvement for EVERY candidate",
+        "Missing required skill: X (if applicable)",
+        "Improvement suggestion or weak area"
       ],
       "reason": "Matched X of ${requiredSkills.length} required skills. [Best qualification]. [Main gap or additional strength]."
     }
@@ -841,6 +849,7 @@ For candidates scoring below 90%, identify improvement areas:
 
 **CRITICAL: You MUST analyze and return ALL ${candidates.length} candidates in the ranking array.**
 **Do NOT limit to top 5 or top 10 - return ALL ${candidates.length} candidates.**
+**EVERY candidate MUST have a non-empty gaps[] array with at least 1 item.**
 **The server will handle selecting the top ${topN} after scoring.**`;
 };;
 
@@ -916,7 +925,14 @@ const parseOutput = (text: string, topN: number, candidatesMap: Map<string, Cand
       match_score: rounded,
       score_breakdown,
       strengths: c.strengths || [],
-      gaps: c.gaps || [],
+      gaps: (c.gaps && c.gaps.length > 0) ? c.gaps : [
+        // Fallback: Generate meaningful gap based on score
+        rounded >= 90 ? "Profile is strong; consider adding more certifications to stand out further" :
+        rounded >= 80 ? "Could strengthen profile with additional industry certifications" :
+        rounded >= 70 ? "Would benefit from more detailed project descriptions and quantifiable achievements" :
+        rounded >= 60 ? "Limited evidence of some required skills; consider adding more specific examples" :
+        "Multiple required skills missing; significant experience gap for this role level"
+      ],
       reason: c.reason || '',
       recommendation: getRecommendation(rounded),
       rank: 0 // Will be set after sorting
