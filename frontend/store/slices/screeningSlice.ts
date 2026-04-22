@@ -66,11 +66,10 @@ const screeningSlice = createSlice({
       .addCase(triggerScreening.pending, (s) => { s.loading = true; s.error = null; })
       .addCase(triggerScreening.fulfilled, (s, a) => { 
         s.loading = false; 
-        s.active = a.payload; 
-        s.results.unshift(a.payload);
-        // Invalidate cache when new screening is created
-        const jobId = typeof a.payload.job_id === 'string' ? a.payload.job_id : a.payload.job_id._id;
-        delete s.lastFetched[jobId];
+        s.active = a.payload;
+        // Clear results so next loadScreeningResults always fetches fresh from DB
+        s.results = [];
+        s.lastFetched = {};
       })
       .addCase(triggerScreening.rejected, (s, a) => { 
         s.loading = false; 
