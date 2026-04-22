@@ -186,7 +186,11 @@ export const runScreening = async (req: Request, res: Response, next: NextFuncti
     
     console.log(`[Screening] AI returned ${output.ranking.length} ranked candidates`);
 
-    const result = await ScreeningResult.create({ job_id, ...output });
+    const result = await ScreeningResult.create({ 
+      job_id, 
+      ...output,
+      prompt_version: "v2.0-detailed" // Mark this as using the new detailed prompt
+    });
 
     // Increment the screening counter - this is permanent and can't be reset by deleting results
     // This prevents abuse where users delete results to get more free screenings
@@ -249,69 +253,16 @@ export const deleteScreeningResult = async (req: Request, res: Response, next: N
 
 export const getScreeningResults = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    // Set no-cache headers to ensure fresh data
-    res.set({
-      'Cache-Control': 'no-cache, no-store, must-revalidate',
-      'Pragma': 'no-cache',
-      'Expires': '0'
-    });
-    
     const results = await ScreeningResult.find({ job_id: req.params.job_id })
       .sort({ createdAt: -1 });
-    
-    // Fetch current job details to replace stored job_summary
-    const job = await Job.findById(req.params.job_id);
-    if (job) {
-      const currentJobSummary = {
-        role: job.title,
-        key_requirements: [],
-        must_have_skills: job.required_skills,
-        preferred_skills: job.preferred_skills,
-      };
-      
-      // Replace job_summary with current job details
-      const updatedResults = results.map(r => ({
-        ...r.toObject(),
-        job_summary: currentJobSummary,
-      }));
-      
-      res.json(updatedResults);
-    } else {
-      res.json(results);
-    }
+    res.json(results);
   } catch (err) { next(err); }
 };
 
 export const getScreeningResult = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    // Set no-cache headers to ensure fresh data
-    res.set({
-      'Cache-Control': 'no-cache, no-store, must-revalidate',
-      'Pragma': 'no-cache',
-      'Expires': '0'
-    });
-    
     const result = await ScreeningResult.findById(req.params.id);
     if (!result) { res.status(404).json({ error: "Result not found" }); return; }
-    
-    // Fetch current job details to replace stored job_summary
-    const job = await Job.findById(result.job_id);
-    if (job) {
-      const currentJobSummary = {
-        role: job.title,
-        key_requirements: [],
-        must_have_skills: job.required_skills,
-        preferred_skills: job.preferred_skills,
-      };
-      
-      const updatedResult = {
-        ...result.toObject(),
-        job_summary: currentJobSummary,
-      };
-      
-      res.json(updatedResult);
-    } else {
-      res.json(result);
-    }
+    res.json(result);
   } catch (err) { next(err); }
 };

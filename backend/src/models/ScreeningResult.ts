@@ -10,6 +10,7 @@ export interface IScreeningResult extends Document {
     preferred_skills: string[];
   };
   ranking: RankedCandidate[];
+  prompt_version?: string; // Track which prompt version generated this result
   createdAt: Date;
 }
 
@@ -40,6 +41,7 @@ const ScreeningResultSchema = new Schema<IScreeningResult>(
       preferred_skills: [String],
     },
     ranking: [RankedCandidateSchema],
+    prompt_version: { type: String, default: "v2.0-detailed" }, // Track prompt version
   },
   { timestamps: true }
 );
