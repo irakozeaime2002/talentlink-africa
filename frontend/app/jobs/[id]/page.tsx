@@ -322,14 +322,14 @@ export default function JobDetailPage() {
       </div>
 
       {/* Screen applicants CTA */}
-      {applications.length > 0 && (
+      {applicantCandidates.length > 0 && (
         <div className="btn-glow rounded-2xl p-5 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
               <Zap size={20} className="text-white" />
             </div>
             <div>
-              <p className="font-bold text-white">{applications.length} applicant{applications.length !== 1 ? "s" : ""} ready to screen</p>
+              <p className="font-bold text-white">{applicantCandidates.length} candidate{applicantCandidates.length !== 1 ? "s" : ""} ready to screen</p>
               <p className="text-white/70 text-xs mt-0.5">Run AI screening to rank and shortlist the best candidates</p>
             </div>
           </div>
