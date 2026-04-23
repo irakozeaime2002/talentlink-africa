@@ -311,7 +311,7 @@ export default function JobDetailPage() {
           {[
             { label: "Applications", value: applications.length, color: "text-pink-400" },
             { label: "Screening Runs", value: results.length, color: "text-violet-400" },
-            { label: "Applicants Ready", value: applicantCandidates.length, color: "text-sky-400" },
+            { label: "Ready to Screen", value: applicantCandidates.length, color: "text-sky-400" },
           ].map(({ label, value, color }) => (
             <div key={label} className="flex items-center gap-2">
               <span className={`text-xl font-extrabold ${color}`}>{value}</span>
