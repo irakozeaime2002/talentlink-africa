@@ -663,20 +663,43 @@ const calculateDeterministicScores = (candidate: CandidateInput, job: JobInput) 
   return baseScores;
 };
 
+// Slim down candidate data sent to Gemini — only what's needed for qualitative analysis
+const slimCandidate = (c: CandidateInput) => ({
+  id: c.id,
+  name: c.name,
+  headline: c.headline,
+  skills: (c.skills || []).map(s => `${s.name}${s.level ? ` (${s.level})` : ''}`),
+  languages: (c.languages || []).map(l => `${l.name}${l.proficiency ? ` (${l.proficiency})` : ''}`),
+  experience: (c.experience || []).map(e => ({
+    role: e.role, company: e.company,
+    duration: `${e.startDate || ''} - ${e.isCurrent ? 'Present' : (e.endDate || '')}`,
+    description: (e.description || '').slice(0, 300),
+    technologies: e.technologies,
+  })),
+  education: (c.education || []).map(e => ({ degree: e.degree, field: e.fieldOfStudy, institution: e.institution })),
+  projects: (c.projects || []).map(p => ({ name: p.name, technologies: p.technologies, description: (p.description || '').slice(0, 200) })),
+  certifications: (c.certifications || []).map(cert => cert.name),
+  bio: (c.bio || '').slice(0, 400),
+  cv_text: (c.cv_text || '').slice(0, 800),
+  cover_letter: (c.cover_letter || '').slice(0, 500),
+  application_answers: c.application_answers,
+  attached_documents: (c.attached_documents || '').slice(0, 500),
+});
+
 const buildPrompt = (job: JobInput, candidates: CandidateInput[], topN: number): string => {
-  // Pre-calculate what's actually required for this job
   const requiredSkills = (job.required_skills || []).filter(s => s);
   const preferredSkills = (job.preferred_skills || []).filter(s => s);
   const requiredDocs = (job.required_documents || []).filter(d => d);
   const questions = (job.application_questions || []).filter(q => q);
-  
-  // Build focused validation checklist
+
   const validationChecklist = [
     requiredSkills.length > 0 ? `REQUIRED SKILLS (${requiredSkills.length}): ${requiredSkills.join(', ')}` : null,
     preferredSkills.length > 0 ? `PREFERRED SKILLS (${preferredSkills.length}): ${preferredSkills.join(', ')}` : null,
     requiredDocs.length > 0 ? `REQUIRED DOCUMENTS (${requiredDocs.length}): ${requiredDocs.join(', ')}` : null,
     questions.length > 0 ? `APPLICATION QUESTIONS (${questions.length}): Must answer all` : null,
   ].filter(Boolean).join('\n');
+
+  const slimCandidates = candidates.map(slimCandidate);
 
   return `You are an AI recruitment analyst. Provide QUALITATIVE INSIGHTS ONLY.
 All scores are calculated server-side - you do NOT calculate any scores.
@@ -688,7 +711,7 @@ All scores are calculated server-side - you do NOT calculate any scores.
 ${validationChecklist}
 
 ## CANDIDATES (${candidates.length} total)
-${JSON.stringify(candidates, null, 2)}
+${JSON.stringify(slimCandidates, null, 2)}
 
 ## FOCUSED ANALYSIS INSTRUCTIONS
 
@@ -830,11 +853,14 @@ Format: "[What's missing/weak] + [Why it matters] + [Impact on job performance]"
 - Score 85/100: ["Python proficiency listed as Intermediate while Advanced is preferred for this role - higher expertise would help with optimizing performance-critical code sections", "Project descriptions could include more quantifiable metrics (e.g., performance improvements, user impact) to better demonstrate impact", "Consider obtaining relevant industry certifications like AWS Solutions Architect to validate cloud expertise"]
 - Score 95/100: ["All core requirements strongly met - profile could be further enhanced with additional certifications in emerging technologies to stay ahead of industry trends", "Consider adding more detailed metrics to project descriptions to quantify business impact and technical achievements"]
 
-### PRIORITY 4: REASON (2-3 sentences with context)
-- Sentence 1: How many required skills matched vs total required
-- Sentence 2: Best matching qualification with specific evidence
-- Sentence 3: Main gap or concern (if any), or additional strength
-- Example: "Matched 4 of 5 required skills. Strong customer service background with 3 years at Hope Restaurant serving customers daily. Missing required skill: Time management."
+### PRIORITY 4: REASON (full paragraph, minimum 5-6 sentences)
+- Sentence 1: Overall impression — how well the candidate fits the role and how many required skills matched
+- Sentence 2: Strongest qualification with specific evidence (company, years, project, certification)
+- Sentence 3: Second strongest area with specific evidence
+- Sentence 4: Main gap or risk and why it matters for this specific role
+- Sentence 5: Any additional gaps or concerns worth noting
+- Sentence 6: Final hiring recommendation with clear justification
+- Example: "This candidate matches 4 of 5 required skills and brings a strong foundation for the role. They have 3 years of hands-on customer service experience at Hope Restaurant, serving 50+ customers daily in a fast-paced environment. Their Hospitality Training certification further validates their readiness for a customer-facing position. However, no evidence of time management skills was found in their profile, which is critical for coordinating multiple tables and meeting service deadlines. Additionally, the required application letter was not submitted, making it harder to assess their written communication and motivation. Overall, this candidate is a solid fit for the core responsibilities but should address the missing document and demonstrate time management ability before a final decision is made."
 
 ## EFFICIENCY RULES
 ✅ **DO:**
@@ -876,7 +902,7 @@ Format: "[What's missing/weak] + [Why it matters] + [Impact on job performance]"
         "Detailed explanation of what's missing, why it matters, and the impact on job performance",
         "Another gap with full context about the risk or improvement needed"
       ],
-      "reason": "Matched X of ${requiredSkills.length} required skills. [Best qualification with specific details]. [Main gap with explanation or additional strength]."
+      "reason": "Full paragraph of 5-6 sentences: overall fit assessment, strongest qualification with evidence, second strength, main gap and its impact on the role, any additional concerns, and final hiring justification."
     }
   ]
 }
@@ -898,8 +924,42 @@ const getRecommendation = (score: number): string =>
   score >= 40 ? "Consider" :
   "Do Not Recommend";
 
+const repairJson = (text: string): string => {
+  let s = text.trim().replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "").trim();
+  try { JSON.parse(s); return s; } catch {}
+
+  // Find the last complete candidate object by finding last complete }
+  // Strategy: truncate at the last valid complete array element
+  const rankingMatch = s.match(/(.*"ranking"\s*:\s*\[)(.*)/s);
+  if (rankingMatch) {
+    const prefix = rankingMatch[1];
+    const body = rankingMatch[2];
+    // Find the last complete object (ends with })
+    const lastComplete = body.lastIndexOf('},');
+    if (lastComplete !== -1) {
+      s = prefix + body.slice(0, lastComplete + 1) + ']}';
+      try { JSON.parse(s); return s; } catch {}
+    }
+  }
+
+  // Fallback: close open structures
+  let braces = 0, brackets = 0, inString = false, escape = false;
+  for (const ch of s) {
+    if (escape) { escape = false; continue; }
+    if (ch === '\\' && inString) { escape = true; continue; }
+    if (ch === '"') { inString = !inString; continue; }
+    if (inString) continue;
+    if (ch === '{') braces++; else if (ch === '}') braces--;
+    else if (ch === '[') brackets++; else if (ch === ']') brackets--;
+  }
+  s = s.replace(/,\s*$/, '').replace(/"[^"]*$/, '"');
+  for (let i = 0; i < brackets; i++) s += ']';
+  for (let i = 0; i < braces; i++) s += '}';
+  return s;
+};
+
 const parseOutput = (text: string, topN: number, candidatesMap: Map<string, CandidateInput>, job: JobInput): ScreeningOutput => {
-  const clean = text.trim().replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "").trim();
+  const clean = repairJson(text);
   const parsed = JSON.parse(clean);
   
   const seenScores = new Set<number>();
@@ -991,47 +1051,77 @@ const parseOutput = (text: string, topN: number, candidatesMap: Map<string, Cand
   };
 };
 
+const BATCH_SIZE = 15;
+
 export const screenCandidates = async (
   job: JobInput,
   candidates: CandidateInput[],
   topN = 20
 ): Promise<ScreeningOutput> => {
-  // Create a map for quick candidate lookup during validation
   const candidatesMap = new Map(candidates.filter(c => c.id).map(c => [c.id!, c]));
-  
-  const prompt = buildPrompt(job, candidates, topN);
-  console.log(`[AI] Screening ${candidates.length} candidates for "${job.title}"`);
-  console.log(`[AI] Requirements: ${(job.required_skills || []).length} skills, ${(job.required_documents || []).length} docs, ${(job.application_questions || []).length} questions`);
-  console.log(`[AI] Prompt size: ${prompt.length} chars`);
-  
-  let lastError: Error = new Error("No models available");
 
-  for (let i = 0; i < MODELS.length; i++) {
-    const modelName = MODELS[i];
-    try {
-      console.log(`[AI] Trying: ${modelName}`);
-      const model = genAI.getGenerativeModel({ 
-        model: modelName,
-        generationConfig: { temperature: 0 },
-      });
-      
-      const result = await model.generateContent(prompt);
-      
-      const text = result.response.text();
-      const output = parseOutput(text, topN, candidatesMap, job);
-      console.log(`[AI] ✓ Success with ${modelName}: Ranked ${output.ranking.length}/${candidates.length} candidates`);
-      return output;
-    } catch (err: any) {
-      const msg = err.message || '';
-      const is429 = msg.includes('429') || msg.toLowerCase().includes('quota') || msg.toLowerCase().includes('rate');
-      console.warn(`[AI] ✗ ${modelName} failed${is429 ? ' (rate limit)' : ''}: ${msg.slice(0, 150)}`);
-      lastError = err;
-      
-      // Immediately try next model - no delays, no timeouts
-      console.log(`[AI] Immediately switching to next model...`);
+  // Split into batches to avoid output token limits
+  const batches: CandidateInput[][] = [];
+  for (let i = 0; i < candidates.length; i += BATCH_SIZE) {
+    batches.push(candidates.slice(i, i + BATCH_SIZE));
+  }
+
+  console.log(`[AI] Screening ${candidates.length} candidates in ${batches.length} batch(es) of ${BATCH_SIZE}`);
+
+  const allRanked: any[] = [];
+  let jobSummary: any = null;
+
+  for (let b = 0; b < batches.length; b++) {
+    const batch = batches[b];
+    const prompt = buildPrompt(job, batch, batch.length);
+    console.log(`[AI] Batch ${b + 1}/${batches.length}: ${batch.length} candidates, prompt size: ${prompt.length} chars`);
+
+    let lastError: Error = new Error("No models available");
+    let batchDone = false;
+
+    for (let i = 0; i < MODELS.length; i++) {
+      const modelName = MODELS[i];
+      try {
+        console.log(`[AI] Trying: ${modelName}`);
+        const model = genAI.getGenerativeModel({
+          model: modelName,
+          generationConfig: { temperature: 0, maxOutputTokens: 16384 },
+        });
+        const result = await model.generateContent(prompt);
+        const text = result.response.text();
+        const output = parseOutput(text, batch.length, candidatesMap, job);
+        console.log(`[AI] ✓ ${modelName}: batch ${b + 1} ranked ${output.ranking.length}/${batch.length}`);
+        if (!jobSummary) jobSummary = output.job_summary;
+        allRanked.push(...output.ranking);
+        batchDone = true;
+        break;
+      } catch (err: any) {
+        const msg = err.message || '';
+        const is429 = msg.includes('429') || msg.toLowerCase().includes('quota') || msg.toLowerCase().includes('rate');
+        console.warn(`[AI] ✗ ${modelName} failed${is429 ? ' (rate limit)' : ''}: ${msg.slice(0, 150)}`);
+        lastError = err;
+      }
+    }
+
+    if (!batchDone) {
+      console.error(`[AI] All models failed for batch ${b + 1}`);
+      throw new Error(`All AI models failed. ${lastError.message?.includes('429') ? 'Rate limit exceeded - please try again in a few minutes.' : 'Please try again later.'}`);
     }
   }
 
-  console.error("[AI] All models failed. Last error:", lastError);
-  throw new Error(`All AI models failed. ${lastError.message?.includes('429') ? 'Rate limit exceeded - please try again in a few minutes.' : 'Please try again later.'}`);
+  // Re-sort all batches combined and assign final ranks
+  const seenScores = new Set<number>();
+  allRanked.forEach(c => {
+    let score = c.match_score;
+    while (seenScores.has(score)) score = Math.round((score + 0.01) * 100) / 100;
+    seenScores.add(score);
+    c.match_score = score;
+  });
+
+  allRanked.sort((a, b) => b.match_score - a.match_score);
+  const ranking = allRanked.slice(0, topN).map((c, i) => ({ ...c, rank: i + 1 }));
+
+  console.log(`[AI] Final ranking: ${ranking.length} candidates from ${candidates.length} total`);
+
+  return { job_summary: jobSummary, ranking };
 };

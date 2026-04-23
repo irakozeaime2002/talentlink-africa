@@ -168,7 +168,7 @@ export default function JobDetailPage() {
     if (selectedIds.length === 0) { toast.error("Select at least one candidate"); return; }
     try {
       await dispatch(triggerScreening({ job_id: id, candidate_ids: selectedIds, top_n: topN })).unwrap();
-      await dispatch(loadScreeningResults({ job_id: id, forceRefresh: true }));
+      await dispatch(loadScreeningResults({ job_id: id, forceRefresh: true })).unwrap();
       toast.success("AI Screening complete!");
       setTab("history");
     } catch (err: any) { toast.error(err.message || "Screening failed"); }

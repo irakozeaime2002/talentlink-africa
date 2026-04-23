@@ -89,13 +89,18 @@ const screeningSlice = createSlice({
           s.error = errorPayload;
         }
       })
-      .addCase(loadScreeningResults.fulfilled, (s, a) => { 
+      .addCase(loadScreeningResults.pending, (s, a) => {
+        // Only show loading if not from cache
+        if (a.meta.arg.forceRefresh) s.loading = true;
+      })
+      .addCase(loadScreeningResults.fulfilled, (s, a) => {
+        s.loading = false;
         s.results = a.payload.data;
-        // Only update lastFetched if data is fresh (not from cache)
         if (!a.payload.fromCache) {
           s.lastFetched[a.payload.jobId] = Date.now();
         }
       })
+      .addCase(loadScreeningResults.rejected, (s) => { s.loading = false; })
       .addCase(loadScreeningResult.fulfilled, (s, a) => { s.active = a.payload; })
       .addCase(removeScreeningResult.fulfilled, (s, a) => {
         s.results = s.results.filter((r) => r._id !== a.payload);
