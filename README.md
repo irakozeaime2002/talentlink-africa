@@ -223,6 +223,7 @@ The application provides a complete recruiter-facing interface that supports:
 - **Applications Management** — View all applications per job, update application status (pending → reviewed → shortlisted → rejected)
 - **Screen Applicants CTA** — One-click shortcut to screen all applicants who applied to a specific job
 - **Share Job** — Copy job link to share with potential candidates
+- **Email Communication** — Send status-based emails to candidates (bulk or individual) with pre-filled templates and optional custom messages via Resend
 
 ### For Applicants
 - **Job Board** — Browse all open jobs publicly; filter and view full job details
@@ -273,6 +274,7 @@ The application provides a complete recruiter-facing interface that supports:
 - **JWT Authentication** — 7-day token expiry with Axios interceptor for automatic header injection
 - **Forgot Password** — Email-based password reset via Resend with 1-hour expiry token
 - **Platform Stats** — Live stats endpoint at `/api/seed/stats`
+- **Email Notifications** — Status-based email templates (shortlisted, reviewed, rejected, pending) sent via Resend with branded HTML, color-coded headers, and recruiter signatures
 
 ### Pages
 | Page | Access | Description |
@@ -398,8 +400,8 @@ job_recruiter/
 │       │   └── advertisementRoutes.ts
 │       ├── services/
 │       │   ├── aiService.ts        # Gemini screening + multi-model fallback
-│       │   ├── emailService.ts     # Resend password reset emails
-│       │   ├── parserService.ts    # PDF text extraction, CSV parsing
+│       │   ├── emailService.ts     # Resend email service (password reset + status notifications)
+│       │   ├── parserService.ts    # PDF text extraction, CSV parsing, AI-powered data enrichment
 │       │   └── paypackService.ts   # Payment gateway integration
 │       └── types/
 │           └── index.ts            # TypeScript type definitions
@@ -701,9 +703,13 @@ NEXT_PUBLIC_API_URL=http://localhost:5000/api
 |---|---|---|---|
 | POST | /api/applications/job/:job_id | Applicant | Submit application |
 | GET | /api/applications/job/:job_id | Recruiter | View applications for job |
+| GET | /api/applications/job/:job_id/all | Recruiter | Get unified list of applications + csv/resume candidates |
 | GET | /api/applications/my | Applicant | View own applications |
 | PATCH | /api/applications/:id | Applicant | Edit application |
-| PATCH | /api/applications/:id/status | Recruiter | Update status |
+| PATCH | /api/applications/:id/status | Recruiter | Update application status |
+| PATCH | /api/applications/candidate/:id/status | Recruiter | Update csv/resume candidate status |
+| POST | /api/applications/job/:job_id/email | Recruiter | Send bulk email to candidates by status filter |
+| POST | /api/applications/email-one | Recruiter | Send single email to candidate |
 | DELETE | /api/applications/:id | Applicant | Cancel application |
 
 ### Chat
@@ -765,7 +771,7 @@ NEXT_PUBLIC_API_URL=http://localhost:5000/api
 | Database | **MongoDB Atlas** | ✅ Required |
 | AI / LLM | **Google Gemini API** | ✅ Mandatory |
 | Auth | JWT (bcryptjs + jsonwebtoken) | ✅ Implemented |
-| Email | Resend (password reset) | ✅ Implemented |
+| Email | Resend (password reset + status notifications) | ✅ Implemented |
 | File Parsing | pdf-parse, xlsx | ✅ Implemented |
 | Theming | CSS variables, React Context | ✅ Implemented |
 | Deployment | Vercel (frontend), Render (backend) | ✅ Live |
@@ -850,12 +856,12 @@ This project was built by a team with the following roles:
 - Database indexes not optimized for large-scale queries (10,000+ candidates)
 
 ### Current Limitations
-- Real-time notifications not implemented (email notifications only for password reset)
-- In-app messaging between recruiters and applicants not available
-- Interview scheduling features not included
-- No integration with external ATS (Applicant Tracking Systems)
-- Payment gateway integration not implemented (plan upgrades are admin-managed)
-- Mobile native apps not available (responsive web app only)
+- **Real-time Notifications** — No WebSocket/push notifications (email-only for password reset and status updates)
+- **In-app Messaging** — No direct chat between recruiters and applicants
+- **Interview Scheduling** — No integrated calendar or booking system
+- **External ATS Integration** — No integration with third-party Applicant Tracking Systems
+- **Payment Gateway** — Plan upgrades are admin-managed (no self-service payment)
+- **Mobile Native Apps** — Responsive web app only (no iOS/Android apps)
 
 ---
 
@@ -877,8 +883,8 @@ While TalentLink Africa is fully functional and production-ready, here are poten
 ### Communication & Collaboration
 - **In-app Messaging** — Direct communication between recruiters and applicants
 - **Interview Scheduling** — Integrated calendar for booking and managing interviews
-- **Email Notifications** — Automated status updates for applicants (application received, shortlisted, rejected)
 - **Team Collaboration** — Multi-recruiter accounts with role permissions and shared candidate notes
+- **SMS Notifications** — Extend email notifications to SMS for critical updates
 
 ### Analytics & Insights
 - **Recruiter Dashboard** — Visualize time-to-hire, application funnel, top skills in demand

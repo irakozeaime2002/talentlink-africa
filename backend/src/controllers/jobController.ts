@@ -161,12 +161,42 @@ export const updateJob = async (req: Request, res: Response, next: NextFunction)
 /**
  * Delete a job posting
  * 
- * This also deletes all associated applications and screening results
- * (handled by MongoDB cascade delete or application logic elsewhere).
+ * When a job is deleted:
+ * 1. Applications from profile applicants (source: "profile") are set to "rejected" status
+ * 2. Screening results for this job are deleted
+ * 3. CSV/PDF uploaded candidates (source: "csv" or "resume") linked to this job are deleted
+ * 4. The job itself is deleted
+ * 
+ * Order matters:
+ * - Update applications first (they reference job_id but we're not deleting them)
+ * - Delete screening results (they reference job_id and candidate_ids)
+ * - Delete csv/resume candidates (they reference job_id)
+ * - Delete job last (everything else references it)
  */
 export const deleteJob = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    await Job.findByIdAndDelete(req.params.id);
+    const job_id = req.params.id;
+    
+    // Import models
+    const { Application } = await import("../models/Application");
+    const { Candidate } = await import("../models/Candidate");
+    const { ScreeningResult } = await import("../models/ScreeningResult");
+    
+    // Step 1: Set all profile applicant applications to "rejected"
+    // These applications stay in the database so applicants can see their history
+    await Application.updateMany({ job_id }, { $set: { status: "rejected" } });
+    
+    // Step 2: Delete all screening results for this job
+    // These reference both job_id and candidate_ids, so delete before candidates
+    await ScreeningResult.deleteMany({ job_id });
+    
+    // Step 3: Delete all csv/resume candidates for this job
+    // These were imported specifically for this job, so they're meaningless without it
+    await Candidate.deleteMany({ job_id, source: { $in: ["csv", "resume"] } });
+    
+    // Step 4: Delete the job itself
+    await Job.findByIdAndDelete(job_id);
+    
     res.json({ message: "Job deleted" });
   } catch (err) {
     next(err);
