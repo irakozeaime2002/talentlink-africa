@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { Candidate } from "../models/Candidate";
-import { parseCSV, parsePDF, resumeTextToCandidate } from "../services/parserService";
+import { parseCSV, parsePDF, resumeTextToCandidate, parseWithAI } from "../services/parserService";
 
 /**
  * Candidate Controller - Manages the recruiter's talent pool
@@ -114,16 +114,44 @@ export const uploadCSV = async (req: Request, res: Response, next: NextFunction)
     const parsed = parseCSV(req.file.buffer);
     const recId = recruiterId(req);
     const timestamp = Date.now();
-    
-    const candidates = await Candidate.insertMany(
-      parsed.map((c, index) => ({
-        ...c,
-        source: "csv",
-        recruiter_id: recId,
-        import_id: `csv-${recId}-${timestamp}-${index}`, // Unique ID for this import
-        ...(job_id ? { job_id } : {})
-      }))
+
+    console.log(`[CSV] Parsed ${parsed.length} rows, running AI enrichment...`);
+
+    const enriched = await Promise.all(
+      parsed.map(async (c, index) => {
+        const rawText = [
+          c.name ? `Name: ${c.name}` : "",
+          c.email ? `Email: ${c.email}` : "",
+          c.headline ? `Title: ${c.headline}` : "",
+          c.location ? `Location: ${c.location}` : "",
+          c.bio || "",
+        ].filter(Boolean).join("\n");
+
+        const aiData = rawText.length > 20 ? await parseWithAI(rawText) : {};
+
+        return {
+          name: aiData.name || c.name || `Candidate ${index + 1}`,
+          email: aiData.email || c.email || "",
+          headline: aiData.headline || c.headline || "",
+          bio: aiData.bio || c.bio || "",
+          location: aiData.location || c.location || "",
+          skills: (aiData.skills as any[])?.length ? aiData.skills : c.skills || [],
+          languages: (aiData.languages as any[])?.length ? aiData.languages : [],
+          experience: (aiData.experience as any[])?.length ? aiData.experience : c.experience || [],
+          education: (aiData.education as any[])?.length ? aiData.education : c.education || [],
+          certifications: (aiData.certifications as any[])?.length ? aiData.certifications : c.certifications || [],
+          projects: (aiData.projects as any[])?.length ? aiData.projects : c.projects || [],
+          availability: (aiData as any).availability || undefined,
+          source: "csv" as const,
+          recruiter_id: recId,
+          import_id: `csv-${recId}-${timestamp}-${index}`,
+          ...(job_id ? { job_id } : {}),
+        };
+      })
     );
+
+    const candidates = await Candidate.insertMany(enriched);
+    console.log(`[CSV] Inserted ${candidates.length} AI-enriched candidates`);
     res.status(201).json({ inserted: candidates.length, candidates });
   } catch (err) { next(err); }
 };
@@ -145,22 +173,40 @@ export const uploadResumes = async (req: Request, res: Response, next: NextFunct
     const { job_id } = req.body;
     const recId = recruiterId(req);
     const timestamp = Date.now();
-    
-    const parsed = await Promise.all(
-      files.map(async (file, i) => {
+
+    console.log(`[Resume] Processing ${files.length} PDFs with AI enrichment...`);
+
+    const enriched = await Promise.all(
+      files.map(async (file, index) => {
         const text = await parsePDF(file.buffer);
-        return resumeTextToCandidate(text, i);
+        const aiData = await parseWithAI(text);
+        const fallbackName = resumeTextToCandidate(text, index).name || file.originalname.replace(/\.pdf$/i, "");
+
+        return {
+          name: aiData.name || fallbackName,
+          email: aiData.email || "",
+          headline: aiData.headline || "",
+          bio: aiData.bio || "",
+          location: aiData.location || "",
+          skills: aiData.skills || [],
+          languages: aiData.languages || [],
+          experience: aiData.experience || [],
+          education: aiData.education || [],
+          certifications: aiData.certifications || [],
+          projects: aiData.projects || [],
+          availability: (aiData as any).availability || undefined,
+          cv_data: text.slice(0, 10000),
+          cv_filename: file.originalname,
+          source: "resume" as const,
+          recruiter_id: recId,
+          import_id: `resume-${recId}-${timestamp}-${index}`,
+          ...(job_id ? { job_id } : {}),
+        };
       })
     );
-    const candidates = await Candidate.insertMany(
-      parsed.map((c, index) => ({
-        ...c,
-        source: "resume",
-        recruiter_id: recId,
-        import_id: `resume-${recId}-${timestamp}-${index}`, // Unique ID for this import
-        ...(job_id ? { job_id } : {})
-      }))
-    );
+
+    const candidates = await Candidate.insertMany(enriched);
+    console.log(`[Resume] Inserted ${candidates.length} AI-enriched candidates`);
     res.status(201).json({ inserted: candidates.length, candidates });
   } catch (err) { next(err); }
 };

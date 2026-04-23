@@ -10,7 +10,7 @@ import {
   ArrowLeft, Briefcase, GraduationCap, FolderGit2, Award,
   MessageSquare, FileText, CheckCircle2, Phone, MapPin,
   Calendar, User as UserIcon, Hash, Mail, ExternalLink, Paperclip, Download,
-  Languages, Globe, Linkedin, Github, Twitter,
+  Languages, Globe, Linkedin, Github, Twitter, Send,
 } from "lucide-react";
 import * as api from "../../../lib/api";
 import axios from "axios";
@@ -55,6 +55,16 @@ export default function ApplicationDetailPage() {
   const [applicantUser, setApplicantUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [statusUpdating, setStatusUpdating] = useState(false);
+  const [emailSending, setEmailSending] = useState(false);
+  const [emailMessage, setEmailMessage] = useState("");
+  const [emailOpen, setEmailOpen] = useState(false);
+
+  const DEFAULT_MESSAGES: Record<string, string> = {
+    shortlisted: `We are pleased to inform you that after carefully reviewing your application, you have been shortlisted for the next stage of our selection process. Our team was impressed with your profile and we look forward to learning more about you. We will be in touch shortly with details about the next steps.`,
+    reviewed: `Thank you for your patience. We have reviewed your application and your profile is currently under consideration. We appreciate the time and effort you put into your application and will update you as our process moves forward.`,
+    rejected: `Thank you for your interest and for taking the time to apply. After careful consideration, we have decided to move forward with other candidates whose experience more closely matches our current needs. We encourage you to apply for future opportunities that match your skills and experience.`,
+    pending: `We have successfully received your application. Our team will review your profile and get back to you with an update. Thank you for your interest in joining our team.`,
+  };
 
   useEffect(() => {
     // Wait for user to be loaded from auth state
@@ -103,6 +113,19 @@ export default function ApplicationDetailPage() {
       toast.success(`Status updated to ${status}`);
     } catch { toast.error("Failed to update status"); }
     finally { setStatusUpdating(false); }
+  };
+
+  const handleSendEmail = async () => {
+    if (!app || !email) return;
+    setEmailSending(true);
+    try {
+      const jobTitle = typeof app.job_id === "object" ? (app.job_id as any).title : "the position";
+      await api.sendSingleEmail(email, name, jobTitle, app.status, emailMessage || undefined);
+      toast.success("Email sent successfully");
+      setEmailOpen(false);
+      setEmailMessage("");
+    } catch { toast.error("Failed to send email"); }
+    finally { setEmailSending(false); }
   };
 
   if (loading) return (
@@ -206,6 +229,30 @@ export default function ApplicationDetailPage() {
               );
             })}
           </div>
+        </div>
+      )}
+
+      {/* Send Email — recruiter only */}
+      {user?.role === "recruiter" && email && (
+        <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+          <button onClick={() => { if (!emailOpen) setEmailMessage(DEFAULT_MESSAGES[app.status] || ""); setEmailOpen(!emailOpen); }}
+            className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-gray-50 transition text-sm font-semibold text-gray-700">
+            <span className="flex items-center gap-2"><Mail size={15} /> Send Email to Applicant</span>
+            <span className="text-xs text-gray-400">{email}</span>
+          </button>
+          {emailOpen && (
+            <div className="px-5 pb-5 space-y-3 border-t border-gray-100">
+              <p className="text-xs text-gray-400 pt-3">A <strong className={`${cfg.text} capitalize`}>{app.status}</strong> status email will be sent. Edit the message below or leave as-is.</p>
+              <textarea value={emailMessage} onChange={(e) => setEmailMessage(e.target.value)}
+                placeholder="Message..."
+                rows={5}
+                className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 bg-white text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none" />
+              <button onClick={handleSendEmail} disabled={emailSending}
+                className="flex items-center gap-2 btn-glow text-white text-xs font-bold px-4 py-2 rounded-xl disabled:opacity-50 transition">
+                <Send size={13} />{emailSending ? "Sending…" : "Send Email"}
+              </button>
+            </div>
+          )}
         </div>
       )}
 

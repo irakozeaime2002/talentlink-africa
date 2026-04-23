@@ -65,6 +65,7 @@ export interface ICandidate extends Document {
   import_id?: string; // Unique ID for CSV/PDF imports (since they don't have applicant_id)
   cv_filename?: string;
   cv_data?: string;
+  status?: "pending" | "reviewed" | "shortlisted" | "rejected";
 }
 
 const CandidateSchema = new Schema<ICandidate>(
@@ -143,6 +144,7 @@ const CandidateSchema = new Schema<ICandidate>(
     import_id: { type: String, unique: true, sparse: true }, // Unique ID for imports
     cv_filename: String,
     cv_data: String,
+    status: { type: String, enum: ["pending", "reviewed", "shortlisted", "rejected"], default: "pending" },
   },
   { timestamps: true }
 );

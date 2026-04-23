@@ -14,6 +14,10 @@ import {
   getMyProfile,
   updateMyProfile,
   uploadMyCV,
+  getAllJobEntries,
+  updateCandidateStatus,
+  sendBulkEmail,
+  sendSingleEmail,
 } from "../controllers/applicationController";
 import { authenticate, requireRole } from "../middleware/auth";
 import { upload } from "../middleware/upload";
@@ -28,6 +32,10 @@ router.get("/my-profile", authenticate, requireRole("applicant"), getMyProfile);
 router.put("/my-profile", authenticate, requireRole("applicant"), updateMyProfile);
 router.post("/my-cv", authenticate, requireRole("applicant"), limitCVUpload, upload.single("cv"), uploadMyCV);
 router.post("/job/:job_id", authenticate, requireRole("applicant"), limitApplications, upload.any(), applyToJob);
+router.post("/job/:job_id/email", authenticate, requireRole("recruiter"), sendBulkEmail);
+router.post("/email-one", authenticate, requireRole("recruiter"), sendSingleEmail);
+router.get("/job/:job_id/all", authenticate, requireRole("recruiter"), getAllJobEntries);
+router.patch("/candidate/:id/status", authenticate, requireRole("recruiter"), updateCandidateStatus);
 router.get("/job/:job_id", authenticate, requireRole("recruiter"), getJobApplications);
 router.get("/job/:job_id/candidates", authenticate, requireRole("recruiter"), getJobApplicantCandidates);
 router.get("/my", authenticate, requireRole("applicant"), getMyApplications);

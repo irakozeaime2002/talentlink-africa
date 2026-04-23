@@ -17,7 +17,88 @@
 import pdfParse from "pdf-parse";
 import * as XLSX from "xlsx";
 import path from "path";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { CandidateInput } from "../types";
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY as string);
+const MODELS = [
+  "gemini-2.5-flash-lite",
+  "gemini-flash-latest",
+  "gemini-pro-latest",
+  "gemini-2.0-flash-lite",
+];
+
+async function callGemini(prompt: string): Promise<string> {
+  for (const modelName of MODELS) {
+    try {
+      const model = genAI.getGenerativeModel({ model: modelName, generationConfig: { temperature: 0, maxOutputTokens: 4096 } });
+      const result = await model.generateContent(prompt);
+      return result.response.text();
+    } catch (err: any) {
+      console.warn(`[Parser] ${modelName} failed: ${err.message?.slice(0, 80)}`);
+    }
+  }
+  throw new Error("All AI models failed during parsing");
+}
+
+const PARSE_PROMPT = (rawText: string) => `You are a resume/CV parser. Extract structured candidate data from the text below.
+Return ONLY a valid JSON object — no markdown, no code blocks, no extra text.
+
+Raw text:
+"""
+${rawText.slice(0, 6000)}
+"""
+
+Extract and return this exact JSON structure (use empty arrays/strings if data not found):
+{
+  "name": "",
+  "email": "",
+  "headline": "",
+  "bio": "",
+  "location": "",
+  "skills": [{"name": "", "level": "Beginner|Intermediate|Advanced|Expert", "yearsOfExperience": 0}],
+  "languages": [{"name": "", "proficiency": "Basic|Conversational|Fluent|Native"}],
+  "experience": [{"company": "", "role": "", "startDate": "", "endDate": "", "description": "", "technologies": [], "isCurrent": false}],
+  "education": [{"institution": "", "degree": "", "fieldOfStudy": "", "startYear": 0, "endYear": 0}],
+  "certifications": [{"name": "", "issuer": "", "issueDate": ""}],
+  "projects": [{"name": "", "description": "", "technologies": [], "role": "", "link": ""}],
+  "availability": {"status": "Available", "type": "Full-time"}
+}
+
+Rules:
+- skills[].level: infer from context ("expert", "5+ years" → Expert; "familiar" → Beginner)
+- languages[].proficiency: infer from context ("native", "mother tongue" → Native; "fluent" → Fluent; "basic" → Basic)
+- experience[].isCurrent: true if "present", "current", "ongoing"
+- For dates use YYYY-MM format when possible
+- bio: write a 1-2 sentence professional summary from the content
+- headline: extract or infer job title/role (e.g. "Senior Backend Engineer")
+- Return empty string "" for missing text fields, 0 for missing numbers, [] for missing arrays`;
+
+export async function parseWithAI(rawText: string): Promise<Partial<CandidateInput>> {
+  try {
+    const response = await callGemini(PARSE_PROMPT(rawText));
+    const clean = response.trim().replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "").trim();
+    const parsed = JSON.parse(clean);
+    // Strip empty arrays/strings to keep data clean
+    return {
+      name: parsed.name || undefined,
+      email: parsed.email || undefined,
+      headline: parsed.headline || undefined,
+      bio: parsed.bio || undefined,
+      location: parsed.location || undefined,
+      skills: parsed.skills?.filter((s: any) => s.name) || [],
+      languages: parsed.languages?.filter((l: any) => l.name) || [],
+      experience: parsed.experience?.filter((e: any) => e.company || e.role) || [],
+      education: parsed.education?.filter((e: any) => e.institution || e.degree) || [],
+      certifications: parsed.certifications?.filter((c: any) => c.name) || [],
+      projects: parsed.projects?.filter((p: any) => p.name) || [],
+      availability: parsed.availability?.status ? parsed.availability : undefined,
+    };
+  } catch (err) {
+    console.error("[Parser] AI parse failed:", err);
+    return {};
+  }
+}
 
 // Simple PDF text extraction - works for most standard resumes
 export const parsePDF = async (buffer: Buffer): Promise<string> => {

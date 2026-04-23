@@ -3,6 +3,7 @@ import { Application } from "../models/Application";
 import { Candidate } from "../models/Candidate";
 import { Job } from "../models/Job";
 import { User } from "../models/User";
+import { sendStatusEmail } from "../services/emailService";
 
 export const uploadMyCV = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -386,5 +387,109 @@ export const getApplication = async (req: Request, res: Response, next: NextFunc
       .populate("job_id", "title");
     if (!app) { res.status(404).json({ error: "Not found" }); return; }
     res.json(app);
+  } catch (err) { next(err); }
+};
+
+// Returns all applications + csv/resume candidates for a job as a unified list
+export const getAllJobEntries = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { job_id } = req.params;
+
+    // Get board applications
+    const apps = await Application.find({ job_id })
+      .populate("applicant_id", "name email phone date_of_birth gender nationality residence")
+      .sort({ createdAt: -1 });
+    const appEntries = apps.map((a) => ({ type: "application" as const, _id: a._id.toString(), data: a.toObject() }));
+
+    // Get the job to find recruiter_id
+    const job = await Job.findById(job_id).select("recruiter_id");
+    if (!job) { res.json(appEntries); return; }
+
+    // Find csv/resume candidates by this recruiter (the full pool, same as screening tab)
+    // Also include candidates explicitly linked to this job_id
+    const csvCandidates = await Candidate.find({
+      source: { $in: ["csv", "resume"] },
+      $or: [{ recruiter_id: job.recruiter_id }, { job_id }],
+    }).sort({ createdAt: -1 });
+
+    // Deduplicate by _id
+    const seen = new Set<string>();
+    const candidateEntries = csvCandidates
+      .filter((c) => { const id = c._id.toString(); if (seen.has(id)) return false; seen.add(id); return true; })
+      .map((c) => ({ type: "candidate" as const, _id: c._id.toString(), data: c.toObject() }));
+
+    res.json([...appEntries, ...candidateEntries]);
+  } catch (err) { next(err); }
+};
+
+// Update status on a csv/resume candidate
+export const updateCandidateStatus = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const candidate = await Candidate.findByIdAndUpdate(
+      req.params.id,
+      { status: req.body.status },
+      { new: true }
+    );
+    if (!candidate) { res.status(404).json({ error: "Candidate not found" }); return; }
+    res.json(candidate);
+  } catch (err) { next(err); }
+};
+
+// Send email to all candidates for a job matching a status filter
+export const sendBulkEmail = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { job_id } = req.params;
+    const { status, customMessage } = req.body; // status: "all" | "pending" | "reviewed" | "shortlisted" | "rejected"
+    const recruiter = await User.findById((req as any).user.id).select("name");
+    const job = await Job.findById(job_id).select("title recruiter_id");
+    if (!job) { res.status(404).json({ error: "Job not found" }); return; }
+
+    // Collect recipients from Applications with their actual status
+    const appQuery: any = { job_id };
+    if (status && status !== "all") appQuery.status = status;
+    const apps = await Application.find(appQuery).populate("applicant_id", "name email");
+
+    // Collect recipients from csv/resume Candidates with their actual status
+    const candQuery: any = { source: { $in: ["csv", "resume"] }, $or: [{ recruiter_id: job.recruiter_id }, { job_id }] };
+    if (status && status !== "all") candQuery.status = status;
+    const candidates = await Candidate.find(candQuery);
+
+    const recipients: { name: string; email: string; status: string }[] = [];
+    for (const app of apps) {
+      const u = app.applicant_id as any;
+      if (u?.email) recipients.push({ name: u.name || "Candidate", email: u.email, status: app.status });
+    }
+    for (const c of candidates) {
+      if (c.email) recipients.push({ name: c.name, email: c.email, status: c.status || "pending" });
+    }
+
+    // Deduplicate by email
+    const seen = new Set<string>();
+    const unique = recipients.filter(r => { if (seen.has(r.email)) return false; seen.add(r.email); return true; });
+
+    if (unique.length === 0) { res.status(400).json({ error: "No candidates with email addresses found for this filter" }); return; }
+
+    let sent = 0, failed = 0;
+    for (const r of unique) {
+      try {
+        await sendStatusEmail({ to: r.email, candidateName: r.name, jobTitle: job.title, status: r.status, customMessage, recruiterName: recruiter?.name });
+        sent++;
+      } catch { failed++; }
+    }
+
+    res.json({ sent, failed, total: unique.length });
+  } catch (err) { next(err); }
+};
+
+// Send email to a single candidate (application or csv/resume)
+export const sendSingleEmail = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { to, candidateName, jobTitle, status, customMessage } = req.body;
+    if (!to || !candidateName || !jobTitle || !status) {
+      res.status(400).json({ error: "to, candidateName, jobTitle, and status are required" }); return;
+    }
+    const recruiter = await User.findById((req as any).user.id).select("name");
+    await sendStatusEmail({ to, candidateName, jobTitle, status, customMessage, recruiterName: recruiter?.name });
+    res.json({ message: "Email sent" });
   } catch (err) { next(err); }
 };

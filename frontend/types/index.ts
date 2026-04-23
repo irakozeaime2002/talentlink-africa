@@ -63,6 +63,7 @@ export interface Candidate {
   source: "profile" | "csv" | "resume";
   cv_filename?: string;
   cv_data?: string;
+  status?: "pending" | "reviewed" | "shortlisted" | "rejected";
   jobs_applied?: { _id: string; title: string }[];
 }
 

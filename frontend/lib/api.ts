@@ -63,6 +63,7 @@ export const fetchPublicJob = (id: string) => api.get<Job>(`/jobs/public/${id}`)
 
 // Candidates
 export const fetchCandidates = () => api.get<Candidate[]>("/candidates").then((r) => r.data);
+export const fetchCandidate = (id: string) => api.get<Candidate>(`/candidates/${id}`).then((r) => r.data);
 export const createCandidate = (data: Omit<Candidate, "_id">) => api.post<Candidate>("/candidates", data).then((r) => r.data);
 export const deleteCandidate = (id: string) => api.delete(`/candidates/${id}`).then((r) => r.data);
 export const bulkDeleteCandidates = (ids: string[]) => api.post("/candidates/bulk-delete", { ids }).then((r) => r.data);
@@ -150,6 +151,15 @@ export const adminGetAds = () => api.get("/ads").then((r) => r.data);
 export const adminCreateAd = (data: any) => api.post("/ads", data).then((r) => r.data);
 export const adminUpdateAd = (id: string, data: any) => api.put(`/ads/${id}`, data).then((r) => r.data);
 export const adminDeleteAd = (id: string) => api.delete(`/ads/${id}`).then((r) => r.data);
+
+export const fetchAllJobEntries = (job_id: string) =>
+  api.get<{ type: "application" | "candidate"; _id: string; data: any }[]>(`/applications/job/${job_id}/all`).then((r) => r.data);
+export const updateCandidateStatus = (id: string, status: string) =>
+  api.patch(`/applications/candidate/${id}/status`, { status }).then((r) => r.data);
+export const sendBulkEmail = (job_id: string, status: string, customMessage?: string) =>
+  api.post<{ sent: number; failed: number; total: number }>(`/applications/job/${job_id}/email`, { status, customMessage }).then((r) => r.data);
+export const sendSingleEmail = (to: string, candidateName: string, jobTitle: string, status: string, customMessage?: string) =>
+  api.post<{ message: string }>("/applications/email-one", { to, candidateName, jobTitle, status, customMessage }).then((r) => r.data);
 
 // Chat
 export const sendChatMessage = (message: string, history: { role: "user" | "model"; parts: { text: string }[] }[], currentPath?: string) =>
