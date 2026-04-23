@@ -152,8 +152,8 @@ export const adminUpdateAd = (id: string, data: any) => api.put(`/ads/${id}`, da
 export const adminDeleteAd = (id: string) => api.delete(`/ads/${id}`).then((r) => r.data);
 
 // Chat
-export const sendChatMessage = (message: string, history: { role: "user" | "model"; parts: { text: string }[] }[]) =>
-  api.post<{ reply: string }>("/chat", { message, history }).then((r) => r.data);
+export const sendChatMessage = (message: string, history: { role: "user" | "model"; parts: { text: string }[] }[], currentPath?: string) =>
+  api.post<{ reply: string }>("/chat", { message, history, currentPath }).then((r) => r.data);
 
 // Contact
 export const createContactMessage = (data: { name: string; email: string; subject: string; message: string }) =>

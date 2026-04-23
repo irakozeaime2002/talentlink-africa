@@ -141,9 +141,10 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export const chat = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { message, history = [] } = req.body as {
+    const { message, history = [], currentPath } = req.body as {
       message: string;
       history: { role: "user" | "model"; parts: { text: string }[] }[];
+      currentPath?: string;
     };
 
     if (!message?.trim()) { res.status(400).json({ error: "Message is required" }); return; }
@@ -163,7 +164,11 @@ export const chat = async (req: Request, res: Response, next: NextFunction): Pro
       roleContext = "\n\n=== CURRENT USER CONTEXT ===\nYou are speaking with a GUEST (not logged in). Focus your responses on:\n- General platform overview\n- How to browse public job board\n- Benefits of creating an account (as recruiter or applicant)\n- Registration process\n\nDo NOT:\n- Reveal any technical details or implementation\n- Discuss internal features or algorithms\n- Share any sensitive information\n\nEncourage them to sign up to access full features.";
     }
 
-    const contextualSystemPrompt = SYSTEM_PROMPT + roleContext;
+    const pageContext = currentPath
+      ? `\n\nThe user is currently on this page: ${currentPath}. Reference this when giving navigation guidance — say "you're already on this page" or "go to [page name]" using the actual page name, not the raw URL path.`
+      : "";
+
+    const contextualSystemPrompt = SYSTEM_PROMPT + roleContext + pageContext;
 
     let lastError: Error = new Error("No models available");
 

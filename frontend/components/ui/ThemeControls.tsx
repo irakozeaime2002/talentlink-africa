@@ -1,5 +1,6 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { MessageCircle, X, Send, Bot, User, Loader2, Sparkles } from "lucide-react";
 import { sendChatMessage } from "../../lib/api";
 
@@ -15,7 +16,51 @@ const SUGGESTIONS = [
   "How to upload resumes for a job?",
 ];
 
+const renderMarkdown = (text: string) => {
+  const lines = text.split('\n');
+  const elements: React.ReactNode[] = [];
+
+  const parseInline = (line: string, key: number): React.ReactNode => {
+    const parts = line.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
+    return (
+      <span key={key}>
+        {parts.map((part, i) => {
+          if (part.startsWith('**') && part.endsWith('**'))
+            return <strong key={i}>{part.slice(2, -2)}</strong>;
+          if (part.startsWith('*') && part.endsWith('*'))
+            return <em key={i}>{part.slice(1, -1)}</em>;
+          return part;
+        })}
+      </span>
+    );
+  };
+
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    const bulletMatch = line.match(/^[*-]\s+(.*)/);
+    if (bulletMatch) {
+      const items: string[] = [];
+      while (i < lines.length && lines[i].match(/^[*-]\s+/)) {
+        items.push(lines[i].replace(/^[*-]\s+/, ''));
+        i++;
+      }
+      elements.push(
+        <ul key={i} className="list-disc pl-4 space-y-0.5 my-1">
+          {items.map((item, j) => <li key={j}>{parseInline(item, j)}</li>)}
+        </ul>
+      );
+      continue;
+    }
+    if (line.trim()) elements.push(<p key={i} className="mb-1">{parseInline(line, i)}</p>);
+    else if (elements.length > 0) elements.push(<br key={i} />);
+    i++;
+  }
+  return elements;
+};
+
 export default function AIChatWidget() {
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -45,7 +90,7 @@ export default function AIChatWidget() {
         role: m.role,
         parts: [{ text: m.text }],
       }));
-      const { reply } = await sendChatMessage(text, history);
+      const { reply } = await sendChatMessage(text, history, pathname ?? undefined);
       setMessages((prev) => [...prev, { role: "model", text: reply }]);
     } catch (err: any) {
       console.error("[Chat Widget] Error:", err);
@@ -123,7 +168,7 @@ export default function AIChatWidget() {
                 }`}
                   style={msg.role === "user" ? { background: "var(--accent)" } : {}}
                 >
-                  {msg.text}
+                  {msg.role === "model" ? renderMarkdown(msg.text) : msg.text}
                 </div>
               </div>
             ))}
