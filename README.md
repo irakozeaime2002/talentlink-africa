@@ -1,6 +1,6 @@
 # TalentLink Africa
 
-> AI-powered talent screening platform built for the **Umurava AI Hackathon 2026** — "AI Products for the Human Resources Industry"
+> AI-powered talent screening platform built by vision developers — "AI Products for the Human Resources Industry"
 
 ## Live Demo
 
@@ -191,8 +191,7 @@ TalentLink Africa fully implements the Umurava standardized talent profile schem
 
 ✅ **All fields are stored in MongoDB** using Mongoose schemas  
 ✅ **Frontend forms** collect structured data matching the schema  
-✅ **AI screening** reads all schema fields for accurate matching  
-✅ **Seed data** (`/api/seed/candidates`) generates 10 dummy profiles following this schema  
+✅ **AI screening** reads all schema fields for accurate matching   
 ✅ **CSV/Resume uploads** are parsed and mapped to this schema  
 
 ---
