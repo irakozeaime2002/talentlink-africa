@@ -53,7 +53,7 @@ Humans remain in control of all final hiring decisions.
 **AI Responsibilities:**
 - Analyze all applicants against job criteria using semantic matching (searches for meaning, not just exact text)
 - Score and rank candidates using weighted dimensions (Skills 40%, Experience 30%, Projects 20%, Education 10%)
-- Generate a ranked shortlist (Top 10 or Top 20)
+- Generate a ranked shortlist (Top n_appicants)
 - Provide clear reasoning for each shortlisted candidate with natural source attribution (e.g., "from languages", "from work history")
 
 **Constraints:**
