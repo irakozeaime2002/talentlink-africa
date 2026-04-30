@@ -203,7 +203,7 @@ The application provides a complete recruiter-facing interface that supports:
 ✅ **Job Creation and Editing** — Full CRUD operations for job listings  
 ✅ **Applicant Ingestion** — Structured profiles, CSV/XLSX uploads, PDF resume parsing  
 ✅ **AI-Based Screening Trigger** — One-click screening with candidate selection  
-✅ **Ranked Shortlist Viewing** — Top 10/20 candidates with scores and rankings  
+✅ **Ranked Shortlist Viewing** — Top n_candidates with scores and rankings  
 ✅ **AI-Generated Reasoning** — Detailed explanation per candidate (strengths, gaps, recommendation)  
 ✅ **Application Management** — Status tracking (pending → reviewed → shortlisted → rejected)  
 ✅ **Screening History** — View and manage past screening runs per job  
