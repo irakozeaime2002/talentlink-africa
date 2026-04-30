@@ -261,7 +261,6 @@ The application provides a complete recruiter-facing interface that supports:
 - **TalentLink Africa AI Assistant** — In-app chat powered by Gemini, context-aware for both recruiter and applicant workflows
 - **Multi-model Fallback** — `gemini-2.5-flash-lite` → `gemini-flash-latest` → `gemini-pro-latest` → `gemini-3-flash-preview` → `gemini-2.0-flash-lite`
 - **Optional Authentication** — Works for both authenticated users and guests without requiring login
-- **Rate Limit Handling** — Progressive delays (5s, 10s, 15s, 20s) between retries when hitting API quota limits
 - **Context-Aware** — Understands user role (recruiter, applicant, admin, guest) and provides relevant guidance
 - **Privacy-Aware** — Never reveals AI scoring details or ranking algorithms to applicants
 
