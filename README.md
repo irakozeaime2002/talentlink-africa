@@ -72,7 +72,7 @@ Humans remain in control of all final hiring decisions.
 **AI Responsibilities:**
 - Parse resumes and applicant data
 - Match applicants to job requirements using intelligent multi-source search (skills[], languages[], bio, cv_text, cover_letter, experience[], projects[])
-- Rank and shortlist Top 10 or 20 candidates
+- Rank and shortlist Top n_appicants candidates
 - Generate explainable reasoning per candidate with specific evidence and natural source attribution
 - Validate document quality and content type matching
 
